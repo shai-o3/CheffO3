@@ -1,0 +1,16 @@
+{
+  "name": "cheffo3",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CheffO3 – ספר מתכונים חכם בעברית עם AI, רשימות קניות ווואטסאפ",
+  "scripts": {
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "build": "npm --prefix client run build",
+    "start": "npm --prefix server start",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "test": "npm --prefix server test",
+    "seed": "npm --prefix server run seed"
+  },
+  "engines": { "node": ">=22.13" }
+}

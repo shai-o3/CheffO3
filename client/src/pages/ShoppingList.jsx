@@ -1,0 +1,124 @@
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api, formatQty, shufersalLink, whatsappLink } from '../api.js';
+import { useApp } from '../App.jsx';
+import IngredientImage from '../components/IngredientImage.jsx';
+
+export default function ShoppingList() {
+  const { notify, refreshCart } = useApp();
+  const [items, setItems] = useState(null);
+  const [name, setName] = useState('');
+  const [qty, setQty] = useState('');
+  const [unit, setUnit] = useState('');
+
+  const load = () => api.shopping().then((x) => { setItems(x); refreshCart(); });
+  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const groups = useMemo(() => {
+    const g = new Map();
+    for (const i of (items || []).filter((x) => !x.checked)) {
+      if (!g.has(i.category)) g.set(i.category, []);
+      g.get(i.category).push(i);
+    }
+    return [...g.entries()];
+  }, [items]);
+  const done = (items || []).filter((x) => x.checked);
+
+  const toggle = async (item) => {
+    setItems((list) => list.map((x) => (x.id === item.id ? { ...x, checked: !x.checked } : x)));
+    await api.updateShopping(item.id, { checked: !item.checked });
+    refreshCart();
+  };
+  const add = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setItems(await api.addShopping({ name, quantity: qty || null, unit }));
+    setName(''); setQty(''); setUnit('');
+    refreshCart();
+  };
+  const del = async (id) => { await api.deleteShopping(id); load(); };
+  const share = async () => {
+    const { text } = await api.shoppingWhatsApp();
+    window.open(whatsappLink(text), '_blank');
+  };
+  const copy = async () => {
+    const { text } = await api.shoppingWhatsApp();
+    await navigator.clipboard.writeText(text.replace(/\*/g, ''));
+    notify('📋 הרשימה הועתקה');
+  };
+
+  if (!items) return <div className="loading">טוען...</div>;
+  const recipes = [...new Map(items.flatMap((i) => i.recipes).map((r) => [r.id, r])).values()];
+
+  return (
+    <>
+      <div className="page-head">
+        <h1>🛒 רשימת קניות</h1>
+        <div className="actions">
+          <button type="button" className="btn btn-wa" onClick={share} disabled={!items.length}>🟢 שליחה בוואטסאפ</button>
+          <button type="button" className="btn" onClick={copy} disabled={!items.length}>📋 העתקה</button>
+          <button type="button" className="btn" onClick={() => window.print()} disabled={!items.length}>🖨️</button>
+        </div>
+      </div>
+
+      <form className="card row add-item" onSubmit={add}>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="הוספת מוצר..." />
+        <input className="narrow" type="number" step="any" min="0" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="כמות" />
+        <input className="narrow" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="יחידה" />
+        <button className="btn btn-primary">+</button>
+      </form>
+
+      {recipes.length > 0 && (
+        <div className="chips from-recipes">
+          <small>מתוך:</small>
+          {recipes.map((r) => <Link key={r.id} to={`/recipes/${r.id}`} className="chip chip-sm">{r.title}</Link>)}
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="empty">
+          <div className="empty-icon">🛒</div>
+          <p>הרשימה ריקה. הוסיפו מצרכים ממתכון בלחיצה על "לרשימת הקניות".</p>
+          <Link to="/" className="btn btn-primary">למתכונים</Link>
+        </div>
+      ) : (
+        <div className="shopping">
+          {groups.map(([cat, list]) => (
+            <section key={cat} className="card shop-group">
+              <h2>{cat} <small>({list.length})</small></h2>
+              <ul>
+                {list.map((i) => <ShopItem key={i.id} item={i} onToggle={toggle} onDelete={del} />)}
+              </ul>
+            </section>
+          ))}
+          {done.length > 0 && (
+            <section className="card shop-group done">
+              <h2>✓ נאסף ({done.length}) <button type="button" className="btn btn-sm" onClick={async () => { setItems(await api.clearShopping(true)); refreshCart(); }}>ניקוי</button></h2>
+              <ul>{done.map((i) => <ShopItem key={i.id} item={i} onToggle={toggle} onDelete={del} />)}</ul>
+            </section>
+          )}
+          <button
+            type="button"
+            className="btn danger"
+            onClick={async () => { if (confirm('לנקות את כל הרשימה?')) { setItems(await api.clearShopping(false)); refreshCart(); } }}
+          >🗑️ ניקוי כל הרשימה</button>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ShopItem({ item, onToggle, onDelete }) {
+  return (
+    <li className={`shop-item ${item.checked ? 'checked' : ''}`}>
+      <input type="checkbox" checked={item.checked} onChange={() => onToggle(item)} />
+      <IngredientImage name={item.name} term={item.search_term} emoji={item.emoji} size={44} />
+      <div className="shop-text" onClick={() => onToggle(item)}>
+        <span className="ing-name">{item.name}</span>
+        {(item.quantity != null || item.unit) && <span className="ing-qty">{[formatQty(item.quantity), item.unit].filter(Boolean).join(' ')}</span>}
+      </div>
+      <a className="btn btn-icon btn-sm" href={shufersalLink(item.search_term || item.name)} target="_blank" rel="noreferrer" title="חיפוש בשופרסל">🔎</a>
+      <button type="button" className="btn btn-icon btn-sm" onClick={() => onDelete(item.id)} title="הסרה">✕</button>
+    </li>
+  );
+}
