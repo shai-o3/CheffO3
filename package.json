@@ -12,5 +12,10 @@
     "test": "npm --prefix server test",
     "seed": "npm --prefix server run seed"
   },
-  "engines": { "node": ">=22.13" }
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^11.1.7"
+  }
 }

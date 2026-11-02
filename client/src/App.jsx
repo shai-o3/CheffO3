@@ -7,6 +7,7 @@ import AddRecipe from './pages/AddRecipe.jsx';
 import EditRecipe from './pages/EditRecipe.jsx';
 import WhatCanICook from './pages/WhatCanICook.jsx';
 import ShoppingList from './pages/ShoppingList.jsx';
+import Login from './components/Login.jsx';
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -22,6 +23,13 @@ export default function App() {
   const [meta, setMeta] = useState(null);
   const [toast, setToast] = useState(null);
   const [cartCount, setCartCount] = useState(0);
+  const [needLogin, setNeedLogin] = useState(false);
+
+  useEffect(() => {
+    const onAuth = () => setNeedLogin(true);
+    window.addEventListener('cheffo3-auth', onAuth);
+    return () => window.removeEventListener('cheffo3-auth', onAuth);
+  }, []);
 
   const refreshMeta = useCallback(() => api.meta().then(setMeta).catch(() => {}), []);
   const refreshCart = useCallback(
@@ -38,6 +46,8 @@ export default function App() {
     const t = setTimeout(() => setToast(null), 3200);
     return () => clearTimeout(t);
   }, [toast]);
+
+  if (needLogin) return <Login />;
 
   return (
     <AppCtx.Provider value={{ meta, refreshMeta, notify, refreshCart }}>

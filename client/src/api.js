@@ -1,3 +1,5 @@
+import { compressAll, compressImage } from './imageUtils.js';
+
 async function request(method, url, body, { form } = {}) {
   const opts = { method, headers: {} };
   if (form) opts.body = form;
@@ -8,6 +10,7 @@ async function request(method, url, body, { form } = {}) {
   const res = await fetch(`/api${url}`, opts);
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && data.auth) window.dispatchEvent(new Event('cheffo3-auth'));
   if (!res.ok) throw new Error(data.error || `שגיאה (${res.status})`);
   return data;
 }
@@ -19,6 +22,8 @@ const qs = (o) => {
   return s ? `?${s}` : '';
 };
 
+export const login = (password) => request('POST', '/login', { password });
+
 export const api = {
   meta: () => request('GET', '/meta'),
   recipes: (filters = {}) => request('GET', `/recipes${qs(filters)}`),
@@ -27,17 +32,17 @@ export const api = {
   updateRecipe: (id, r) => request('PUT', `/recipes/${id}`, r),
   deleteRecipe: (id) => request('DELETE', `/recipes/${id}`),
   setFavorite: (id, favorite) => request('PATCH', `/recipes/${id}/favorite`, { favorite }),
-  uploadRecipeImage: (id, file) => {
+  uploadRecipeImage: async (id, file) => {
     const f = new FormData();
-    f.append('image', file);
+    f.append('image', await compressImage(file));
     return request('POST', `/recipes/${id}/image`, null, { form: f });
   },
   recipeWhatsApp: (id, servings) => request('GET', `/recipes/${id}/whatsapp${qs({ servings })}`),
 
-  extract: ({ text, files, keepImage }) => {
+  extract: async ({ text, files, keepImage }) => {
     const f = new FormData();
     f.append('text', text || '');
-    (files || []).forEach((file) => f.append('images', file));
+    (await compressAll(files || [])).forEach((file) => f.append('images', file));
     if (keepImage) f.append('keepImage', '1');
     return request('POST', '/ai/extract', null, { form: f });
   },
@@ -61,10 +66,10 @@ export const api = {
 
   ingredientImage: (name, q) => request('GET', `/ingredient-image${qs({ name, q })}`),
   setIngredientImage: (term, url) => request('PUT', '/ingredient-image', { term, url }),
-  uploadIngredientImage: (term, file) => {
+  uploadIngredientImage: async (term, file) => {
     const f = new FormData();
     f.append('term', term);
-    f.append('image', file);
+    f.append('image', await compressImage(file, { maxDim: 600 }));
     return request('POST', '/ingredient-image/upload', null, { form: f });
   },
   resetIngredientImage: (term) => request('DELETE', `/ingredient-image${qs({ term })}`),

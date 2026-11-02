@@ -68,6 +68,23 @@ npm --prefix client run build:demo
 npm test
 ```
 
+## העלאה ל-Netlify
+
+הפרויקט מוכן ל-Netlify: האתר נבנה מתיקיית `client`, ופונקציה אחת (`netlify/functions/api.mjs`) מריצה את ה-API, ה-AI ובוט הוואטסאפ. הנתונים (מתכונים, רשימת קניות ותמונות) נשמרים ב-**Netlify Blobs**, האחסון המובנה של Netlify, בלי הגדרה נוספת.
+
+1. ב-Netlify: **Add new site ← Import an existing project ← GitHub**, ובוחרים את המאגר `shai-o3/CheffO3`.
+2. בוחרים את הענף לפריסה (Branch to deploy). שאר הגדרות הבנייה נקראות אוטומטית מ-`netlify.toml`.
+3. לפני הפריסה הראשונה, תחת **Site configuration ← Environment variables**, מוסיפים:
+   - `APP_PASSWORD`: סיסמה לאפליקציה. **חובה בפועל**, כי בלעדיה כל מי שמגיע לכתובת יכול לערוך את המתכונים ולהשתמש במפתח ה-API שלכם.
+   - `ANTHROPIC_API_KEY`: מפתח ה-API של Claude.
+4. **Deploy**. מכאן כל דחיפה לענף מעדכנת את האתר.
+
+בפעם הראשונה האתר נפתח עם 6 מתכוני דוגמה (`SEED=0` מבטל אותם).
+
+**מגבלות ב-Netlify:** כל בקשה לשרת מוגבלת ל-60 שניות, ולכן ה-AI רץ שם ברמת מאמץ `low` (אפשר לשנות עם `AI_EFFORT`). תמונות מוקטנות בדפדפן לפני ההעלאה, כי Netlify מקבל עד כ-4.5MB לבקשה.
+
+**בוט וואטסאפ ב-Netlify:** כתובת ה-Webhook היא `https://<האתר>.netlify.app/api/whatsapp/webhook`. מומלץ להגדיר גם `WHATSAPP_APP_SECRET`, כדי לוודא שהבקשות באמת מגיעות מוואטסאפ.
+
 ## בלי מפתח API
 
 האפליקציה עובדת גם בלי מפתח: ניהול מתכונים, רשימות קניות, התאמה לפי מצרכים ווואטסאפ זמינים. טקסט מודבק מפוענח בפענוח בסיסי (מזהה "מצרכים:" ו"אופן ההכנה:"). קריאה מתמונות, הצעות, התאמות וצ'אט עם השף דורשים מפתח.
@@ -90,9 +107,11 @@ server/   Express + node:sqlite
   src/shopping.js   רשימת קניות ומזווה
   src/ai.js         Claude: חילוץ מתכון מטקסט/תמונות, הצעות, התאמות, צ'אט
   src/images.js     תמונות מצרכים (שופרסל ← ויקיפדיה) עם מטמון
-  src/whatsapp.js   פורמט הודעות + בוט WhatsApp Cloud API
+  src/whatsapp.js   בוט WhatsApp (גרסת Express)
+  src/core.js       מימוש ה-API מעל מסמך JSON (משמש את Netlify ואת גרסת ההדגמה)
   src/hebrew.js     עיבוד עברית: פענוח שורות מצרכים, מחלקות, השוואת שמות
 client/   React + Vite (RTL)
+netlify/  פונקציית Netlify: API, תמונות, בוט וואטסאפ (נתונים ב-Netlify Blobs)
 ```
 
 ## הערה על תמונות מהסופר

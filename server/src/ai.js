@@ -16,7 +16,12 @@ export const aiEnabled = () => !!(process.env.ANTHROPIC_API_KEY || process.env.A
 
 let client;
 function getClient() {
-  if (!client) client = new Anthropic();
+  if (!client) {
+    client = new Anthropic({
+      ...(process.env.ANTHROPIC_TIMEOUT_MS && { timeout: Number(process.env.ANTHROPIC_TIMEOUT_MS) }),
+      ...(process.env.ANTHROPIC_MAX_RETRIES && { maxRetries: Number(process.env.ANTHROPIC_MAX_RETRIES) }),
+    });
+  }
   return client;
 }
 
@@ -70,7 +75,7 @@ function check(response) {
   }
 }
 
-async function parseWithSchema({ system, content, schema, maxTokens = 16000, effort = 'medium' }) {
+async function parseWithSchema({ system, content, schema, maxTokens = 16000, effort = process.env.AI_EFFORT || 'medium' }) {
   const response = await getClient().beta.messages.parse({
     model: MODEL,
     max_tokens: maxTokens,

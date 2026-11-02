@@ -1,0 +1,17 @@
+# CheffO3 on Netlify: static React app + one function for the API (data in Netlify Blobs).
+[build]
+  command = "npm --prefix server ci && npm --prefix client ci && npm --prefix client run build"
+  publish = "client/dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Single-page app: every other path serves index.html (the function's own paths take priority).
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
