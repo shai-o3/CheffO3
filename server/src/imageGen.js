@@ -11,7 +11,8 @@ const API = () => process.env.GEMINI_API_BASE || 'https://generativelanguage.goo
 const DEFAULT_MODEL = 'gemini-nano-banana-2.1';
 const TIMEOUT_MS = 50_000;
 
-export const imageGenEnabled = () => !!process.env.GEMINI_API_KEY;
+const apiKey = () => String(process.env.GEMINI_API_KEY || '').trim().replace(/^["']|["']$/g, '');
+export const imageGenEnabled = () => !!apiKey();
 const model = () => process.env.GEMINI_IMAGE_MODEL || DEFAULT_MODEL;
 
 /** Prompt describing the finished dish, built from the recipe. */
@@ -58,7 +59,7 @@ async function post(path, body) {
   try {
     const res = await fetch(`${API()}/${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': process.env.GEMINI_API_KEY },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey() },
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
@@ -97,6 +98,11 @@ export async function generateDishImage(recipe) {
     if (!image) {
       console.error('gemini image failed', first.status, first.text.slice(0, 300), '|', res.status, res.text.slice(0, 300));
       const msg = res.json?.error?.message || first.json?.error?.message || `קוד ${res.status}`;
+      if (/API key not valid|API_KEY_INVALID/i.test(msg + first.text + res.text)) {
+        const k = apiKey();
+        const hint = k.startsWith('AIza') ? '' : ` (הערך שהוגדר מתחיל ב-"${k.slice(0, 6)}…", ומפתח Gemini תקין מתחיל ב-"AIza")`;
+        throw Object.assign(new Error(`מפתח ה-Gemini לא תקין${hint}. צרו מפתח ב-aistudio.google.com/apikey והגדירו אותו ב-GEMINI_API_KEY.`), { status: 400 });
+      }
       throw Object.assign(new Error(`יצירת התמונה נכשלה: ${msg}`), { status: 502 });
     }
   }

@@ -82,5 +82,5 @@ test('falls back to generateContent (inlineData format)', async () => {
 test('reports a clear error when Google refuses', async () => {
   mode = 'broken';
   const { ctx, handle } = await setup();
-  await assert.rejects(handle(ctx, 'POST', `/recipes/${ctx.state.recipes[2].id}/generate-image`, new URLSearchParams(), {}), /API key not valid/);
+  await assert.rejects(handle(ctx, 'POST', `/recipes/${ctx.state.recipes[2].id}/generate-image`, new URLSearchParams(), {}), /מפתח ה-Gemini לא תקין/);
 });
