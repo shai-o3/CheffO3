@@ -98,12 +98,15 @@ export async function generateDishImage(recipe) {
     if (!image) {
       console.error('gemini image failed', first.status, first.text.slice(0, 300), '|', res.status, res.text.slice(0, 300));
       const msg = res.json?.error?.message || first.json?.error?.message || `קוד ${res.status}`;
+      const reason = (j) => j?.error?.details?.find((d) => d.reason)?.reason || j?.error?.status || '';
+      const detail = `[interactions: ${first.status} ${reason(first.json)} | generateContent: ${res.status} ${reason(res.json)}]`;
       if (/API key not valid|API_KEY_INVALID/i.test(msg + first.text + res.text)) {
         const k = apiKey();
-        const hint = k.startsWith('AIza') ? '' : ` (הערך שהוגדר מתחיל ב-"${k.slice(0, 6)}…", ומפתח Gemini תקין מתחיל ב-"AIza")`;
-        throw Object.assign(new Error(`מפתח ה-Gemini לא תקין${hint}. צרו מפתח ב-aistudio.google.com/apikey והגדירו אותו ב-GEMINI_API_KEY.`), { status: 400 });
+        const looksRight = k.startsWith('AQ.') || k.startsWith('AIza');
+        const hint = looksRight ? '' : ` הערך שהוגדר מתחיל ב-"${k.slice(0, 4)}…", ומפתח Gemini מתחיל ב-"AQ." או ב-"AIza".`;
+        throw Object.assign(new Error(`Google דחה את מפתח ה-Gemini.${hint} ודאו שהמפתח נוצר ב-aistudio.google.com/apikey והועתק במלואו ל-GEMINI_API_KEY. ${detail}`), { status: 400 });
       }
-      throw Object.assign(new Error(`יצירת התמונה נכשלה: ${msg}`), { status: 502 });
+      throw Object.assign(new Error(`יצירת התמונה נכשלה: ${msg} ${detail}`), { status: 502 });
     }
   }
   return image;
