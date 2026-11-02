@@ -16,6 +16,11 @@ before(async () => {
     req.on('end', () => {
       calls.push({ url: req.url, key: req.headers['x-goog-api-key'], body: JSON.parse(body) });
       res.setHeader('content-type', 'application/json');
+      if (mode === 'quota') {
+        res.statusCode = 429;
+        res.end(JSON.stringify({ error: { code: 429, status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0' } }));
+        return;
+      }
       if (req.url.endsWith('/interactions')) {
         if (mode !== 'interactions') { res.statusCode = 404; res.end(JSON.stringify({ error: { message: 'not found' } })); return; }
         res.end(JSON.stringify({ status: 'completed', steps: [{ type: 'model_output', content: [{ type: 'image', data: PNG, mime_type: 'image/png' }] }] }));
@@ -83,4 +88,10 @@ test('reports a clear error when Google refuses', async () => {
   mode = 'broken';
   const { ctx, handle } = await setup();
   await assert.rejects(handle(ctx, 'POST', `/recipes/${ctx.state.recipes[2].id}/generate-image`, new URLSearchParams(), {}), /Google דחה את מפתח ה-Gemini/);
+});
+
+test('explains the free-tier quota error', async () => {
+  mode = 'quota';
+  const { ctx, handle } = await setup();
+  await assert.rejects(handle(ctx, 'POST', `/recipes/${ctx.state.recipes[3].id}/generate-image`, new URLSearchParams(), {}), /להפעיל חיוב/);
 });

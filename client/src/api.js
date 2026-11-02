@@ -11,7 +11,7 @@ async function request(method, url, body, { form } = {}) {
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (res.status === 401 && data.auth) window.dispatchEvent(new Event('cheffo3-auth'));
-  if (!res.ok) throw new Error(data.error || `שגיאה (${res.status})`);
+  if (!res.ok) throw Object.assign(new Error(data.error || `שגיאה (${res.status})`), { status: res.status });
   return data;
 }
 

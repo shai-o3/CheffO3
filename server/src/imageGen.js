@@ -106,6 +106,12 @@ export async function generateDishImage(recipe) {
         const hint = looksRight ? '' : ` הערך שהוגדר מתחיל ב-"${k.slice(0, 4)}…", ומפתח Gemini מתחיל ב-"AQ." או ב-"AIza".`;
         throw Object.assign(new Error(`Google דחה את מפתח ה-Gemini.${hint} ודאו שהמפתח נוצר ב-aistudio.google.com/apikey והועתק במלואו ל-GEMINI_API_KEY. ${detail}`), { status: 400 });
       }
+      if (res.status === 429 || first.status === 429) {
+        const freeTier = /free_tier|FreeTier|Free Tier/i.test(first.text + res.text);
+        throw Object.assign(new Error(freeTier
+          ? 'יצירת תמונות לא זמינה בתוכנית החינמית של Google. יש להפעיל חיוב (Billing) בפרויקט של מפתח ה-Gemini ב-aistudio.google.com, ואז לנסות שוב.'
+          : 'הגעתם למכסת יצירת התמונות ב-Google. נסו שוב מאוחר יותר.'), { status: 429, code: 'quota' });
+      }
       throw Object.assign(new Error(`יצירת התמונה נכשלה: ${msg} ${detail}`), { status: 502 });
     }
   }
