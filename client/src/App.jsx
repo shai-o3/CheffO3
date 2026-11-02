@@ -60,6 +60,11 @@ export default function App() {
         </nav>
       </header>
       <main className="container">
+        {meta?.demo && (
+          <div className="demo-banner">
+            <b>גרסת הדגמה.</b> המתכונים ורשימת הקניות נשמרים רק בדפדפן שלך. קריאת מתכון מצילום מסך, הצעות השף ותמונות המוצרים משופרסל עובדים בגרסה המלאה, כשהשרת רץ עם מפתח API.
+          </div>
+        )}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/recipes/:id" element={<RecipePage />} />

@@ -20,6 +20,7 @@ export default function RecipePage() {
   const [doneSteps, setDoneSteps] = useState(new Set());
   const [cookMode, setCookMode] = useState(false);
   const [adapting, setAdapting] = useState(false);
+  const [waText, setWaText] = useState('');
   const fileRef = useRef();
 
   useEffect(() => {
@@ -30,6 +31,12 @@ export default function RecipePage() {
       setDoneSteps(new Set());
     }).catch((e) => setError(e.message));
   }, [id]);
+
+  // Prepare the WhatsApp message ahead of time so the share button is a plain link.
+  useEffect(() => {
+    if (!recipe) return;
+    api.recipeWhatsApp(recipe.id, servings).then((r) => setWaText(r.text)).catch(() => {});
+  }, [recipe, servings]);
 
   const factor = recipe?.servings ? servings / recipe.servings : 1;
   const sections = useMemo(() => {
@@ -57,10 +64,6 @@ export default function RecipePage() {
     refreshCart();
   };
 
-  const shareWhatsApp = async () => {
-    const { text } = await api.recipeWhatsApp(recipe.id, servings);
-    window.open(whatsappLink(text), '_blank');
-  };
 
   const onDelete = async () => {
     if (!confirm(`למחוק את "${recipe.title}"?`)) return;
@@ -117,11 +120,11 @@ export default function RecipePage() {
           <div className="actions">
             <button type="button" className="btn btn-primary" onClick={() => setCookMode(true)}>👩‍🍳 מצב בישול</button>
             <button type="button" className="btn" onClick={() => addToCart()}>🛒 לרשימת הקניות</button>
-            <button type="button" className="btn btn-wa" onClick={shareWhatsApp}>🟢 שליחה בוואטסאפ</button>
+            <a className="btn btn-wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer">🟢 שליחה בוואטסאפ</a>
             <button type="button" className="btn btn-icon" onClick={onFavorite} title="מועדף">{recipe.favorite ? '❤️' : '🤍'}</button>
             <Link to={`/recipes/${recipe.id}/edit`} className="btn btn-icon" title="עריכה">✏️</Link>
             <button type="button" className="btn btn-icon" onClick={() => fileRef.current.click()} title="תמונה למתכון">📷</button>
-            <button type="button" className="btn btn-icon" onClick={() => window.print()} title="הדפסה">🖨️</button>
+            <button type="button" className="btn btn-icon print-btn" onClick={() => window.print()} title="הדפסה">🖨️</button>
             <button type="button" className="btn btn-icon danger" onClick={onDelete} title="מחיקה">🗑️</button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files[0] && onImage(e.target.files[0])} />
           </div>

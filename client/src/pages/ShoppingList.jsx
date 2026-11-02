@@ -10,9 +10,14 @@ export default function ShoppingList() {
   const [name, setName] = useState('');
   const [qty, setQty] = useState('');
   const [unit, setUnit] = useState('');
+  const [waText, setWaText] = useState('');
 
   const load = () => api.shopping().then((x) => { setItems(x); refreshCart(); });
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (items) api.shoppingWhatsApp().then((r) => setWaText(r.text)).catch(() => {});
+  }, [items]);
 
   const groups = useMemo(() => {
     const g = new Map();
@@ -37,14 +42,10 @@ export default function ShoppingList() {
     refreshCart();
   };
   const del = async (id) => { await api.deleteShopping(id); load(); };
-  const share = async () => {
-    const { text } = await api.shoppingWhatsApp();
-    window.open(whatsappLink(text), '_blank');
-  };
-  const copy = async () => {
-    const { text } = await api.shoppingWhatsApp();
-    await navigator.clipboard.writeText(text.replace(/\*/g, ''));
-    notify('📋 הרשימה הועתקה');
+  const copy = () => {
+    navigator.clipboard.writeText(waText.replace(/\*/g, ''))
+      .then(() => notify('📋 הרשימה הועתקה'))
+      .catch(() => notify('לא ניתן להעתיק בדפדפן הזה', 'error'));
   };
 
   if (!items) return <div className="loading">טוען...</div>;
@@ -55,9 +56,9 @@ export default function ShoppingList() {
       <div className="page-head">
         <h1>🛒 רשימת קניות</h1>
         <div className="actions">
-          <button type="button" className="btn btn-wa" onClick={share} disabled={!items.length}>🟢 שליחה בוואטסאפ</button>
+          {items.length > 0 && <a className="btn btn-wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer">🟢 שליחה בוואטסאפ</a>}
           <button type="button" className="btn" onClick={copy} disabled={!items.length}>📋 העתקה</button>
-          <button type="button" className="btn" onClick={() => window.print()} disabled={!items.length}>🖨️</button>
+          <button type="button" className="btn print-btn" onClick={() => window.print()} disabled={!items.length}>🖨️</button>
         </div>
       </div>
 
