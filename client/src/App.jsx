@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { NavLink, Route, Routes } from 'react-router-dom';
-import { api } from './api.js';
+import { api, auth } from './api.js';
 import Home from './pages/Home.jsx';
 import RecipePage from './pages/RecipePage.jsx';
 import AddRecipe from './pages/AddRecipe.jsx';
@@ -8,6 +8,7 @@ import EditRecipe from './pages/EditRecipe.jsx';
 import WhatCanICook from './pages/WhatCanICook.jsx';
 import ShoppingList from './pages/ShoppingList.jsx';
 import Login from './components/Login.jsx';
+import UserMenu from './components/UserMenu.jsx';
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -24,6 +25,17 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [cartCount, setCartCount] = useState(0);
   const [needLogin, setNeedLogin] = useState(false);
+  // undefined = loading; null = server without accounts (local server / demo); object = accounts enabled
+  const [session, setSession] = useState(undefined);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    auth.session().then((s) => {
+      setSession(s);
+      setUser(s?.user || null);
+    });
+  }, []);
+  const ready = session === null || !!user;
 
   useEffect(() => {
     const onAuth = () => setNeedLogin(true);
@@ -36,7 +48,9 @@ export default function App() {
     () => api.shopping().then((items) => setCartCount(items.filter((i) => !i.checked).length)).catch(() => {}),
     [],
   );
-  useEffect(() => { refreshMeta(); refreshCart(); }, [refreshMeta, refreshCart]);
+  useEffect(() => {
+    if (ready) { refreshMeta(); refreshCart(); }
+  }, [ready, user?.id, refreshMeta, refreshCart]);
 
   const notify = useCallback((msg, kind = 'ok') => {
     setToast({ msg, kind, id: Date.now() });
@@ -47,7 +61,13 @@ export default function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  if (needLogin) return <Login />;
+  const onLoggedIn = useCallback((u) => {
+    setUser(u);
+    setNeedLogin(false);
+  }, []);
+
+  if (session === undefined) return <div className="loading splash">👨‍🍳</div>;
+  if ((session && !user) || needLogin) return <Login session={session} onLoggedIn={onLoggedIn} />;
 
   return (
     <AppCtx.Provider value={{ meta, refreshMeta, notify, refreshCart }}>
@@ -68,6 +88,7 @@ export default function App() {
             </NavLink>
           ))}
         </nav>
+        {user && <UserMenu user={user} onUser={setUser} notify={notify} />}
       </header>
       <main className="container">
         {meta?.demo && (

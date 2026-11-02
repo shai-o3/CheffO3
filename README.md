@@ -74,16 +74,33 @@ npm test
 
 1. ב-Netlify: **Add new site ← Import an existing project ← GitHub**, ובוחרים את המאגר `shai-o3/CheffO3`.
 2. בוחרים את הענף לפריסה (Branch to deploy). שאר הגדרות הבנייה נקראות אוטומטית מ-`netlify.toml`.
-3. לפני הפריסה הראשונה, תחת **Site configuration ← Environment variables**, מוסיפים:
-   - `APP_PASSWORD`: סיסמה לאפליקציה. **חובה בפועל**, כי בלעדיה כל מי שמגיע לכתובת יכול לערוך את המתכונים ולהשתמש במפתח ה-API שלכם.
+3. לפני הפריסה הראשונה, תחת **Project configuration ← Environment variables**, מוסיפים:
    - `ANTHROPIC_API_KEY`: מפתח ה-API של Claude.
+   - `GOOGLE_CLIENT_ID`: לכניסה עם Google (ראו בהמשך). לא חובה.
+   - `ALLOWED_EMAILS`: מי רשאי להירשם, למשל `@family.co.il,friend@gmail.com`. **מומלץ מאוד**, כי בלעדיו כל מי שמגיע לכתובת יכול לפתוח חשבון ולהשתמש במפתח ה-API שלכם.
 4. **Deploy**. מכאן כל דחיפה לענף מעדכנת את האתר.
 
-בפעם הראשונה האתר נפתח עם 6 מתכוני דוגמה (`SEED=0` מבטל אותם).
+### משתמשים
+
+- כל משתמש נרשם עם אימייל וסיסמה, או נכנס עם חשבון Google. מתכונים, רשימת קניות ומזווה נפרדים לכל משתמש.
+- משתמש חדש מתחיל עם 6 מתכוני דוגמה (`SEED=0` מבטל אותם).
+- החשבון **הראשון** שנרשם מקבל את הנתונים שנשמרו באתר לפני שהיו חשבונות.
+- כניסה עם Google לאימייל שכבר רשום מתחברת לאותו חשבון.
+- בתפריט המשתמש (העיגול עם האות הראשונה של השם) אפשר לשנות שם וסיסמה, ולקשר מספר טלפון לבוט הוואטסאפ.
+- הסיסמאות נשמרות מוצפנות (scrypt). החיבור נשמר בעוגייה חתומה ל-60 יום.
+
+### הגדרת כניסה עם Google
+
+1. נכנסים ל-[Google Cloud Console](https://console.cloud.google.com/) ויוצרים פרויקט (או בוחרים קיים).
+2. **APIs & Services ← OAuth consent screen**: בוחרים **External**, ממלאים שם אפליקציה ואימייל, ושומרים. אם Google מבקש, מפרסמים את האפליקציה (**Publish app**), כדי שכל משתמש יוכל להיכנס ולא רק משתמשי בדיקה.
+3. **APIs & Services ← Credentials ← Create credentials ← OAuth client ID**:
+   - Application type: **Web application**
+   - **Authorized JavaScript origins**: כתובת האתר, למשל `https://cheffo3.netlify.app` (בלי `/` בסוף). אם יש דומיין משלכם, מוסיפים גם אותו.
+4. מעתיקים את ה-**Client ID** (מסתיים ב-`.apps.googleusercontent.com`) למשתנה `GOOGLE_CLIENT_ID` ב-Netlify, ופורסים מחדש. אין צורך ב-Client secret.
 
 **מגבלות ב-Netlify:** כל בקשה לשרת מוגבלת ל-60 שניות, ולכן ה-AI רץ שם ברמת מאמץ `low` (אפשר לשנות עם `AI_EFFORT`). תמונות מוקטנות בדפדפן לפני ההעלאה, כי Netlify מקבל עד כ-4.5MB לבקשה.
 
-**בוט וואטסאפ ב-Netlify:** כתובת ה-Webhook היא `https://<האתר>.netlify.app/api/whatsapp/webhook`. מומלץ להגדיר גם `WHATSAPP_APP_SECRET`, כדי לוודא שהבקשות באמת מגיעות מוואטסאפ.
+**בוט וואטסאפ ב-Netlify:** כתובת ה-Webhook היא `https://<האתר>.netlify.app/api/whatsapp/webhook`. מומלץ להגדיר גם `WHATSAPP_APP_SECRET`, כדי לוודא שהבקשות באמת מגיעות מוואטסאפ. כל משתמש מקשר את מספר הטלפון שלו בהגדרות, והבוט שומר את המתכון בחשבון של מי ששלח. ב-Netlify לא צריך את `WHATSAPP_ALLOWED_NUMBERS`.
 
 ## בלי מפתח API
 

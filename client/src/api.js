@@ -22,7 +22,16 @@ const qs = (o) => {
   return s ? `?${s}` : '';
 };
 
-export const login = (password) => request('POST', '/login', { password });
+export const auth = {
+  /** null when the server has no accounts (local server, demo) */
+  session: () => request('GET', '/session').catch(() => null),
+  register: (body) => request('POST', '/auth/register', body),
+  login: (email, password) => request('POST', '/auth/login', { email, password }),
+  google: (credential) => request('POST', '/auth/google', { credential }),
+  logout: () => request('POST', '/auth/logout', {}),
+  updateMe: (patch) => request('PUT', '/me', patch),
+  changePassword: (current, next) => request('POST', '/me/password', { current, next }),
+};
 
 export const api = {
   meta: () => request('GET', '/meta'),
