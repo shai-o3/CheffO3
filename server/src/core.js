@@ -146,6 +146,8 @@ export async function handle(ctx, method, path, params, body) {
   const route = (meth, re) => method === meth && (m = path.match(re));
   const mutate = (v) => { ctx.dirty = true; return v; };
 
+  if (route('GET', /^\/session$/)) return { authRequired: false };
+
   if (route('GET', /^\/meta$/)) {
     return {
       aiEnabled: !!ctx.ai, whatsappBot: !!ctx.whatsappBot, demo: !!ctx.demo,

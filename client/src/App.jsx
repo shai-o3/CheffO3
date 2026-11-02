@@ -29,12 +29,19 @@ export default function App() {
   const [session, setSession] = useState(undefined);
   const [user, setUser] = useState(null);
 
-  useEffect(() => {
+  const [sessionError, setSessionError] = useState('');
+
+  const loadSession = useCallback(() => {
+    setSessionError('');
     auth.session().then((s) => {
+      // Only skip the login screen when the server explicitly says it has no accounts.
+      if (s && s.authRequired === false) { setSession(null); return; }
+      if (!s || s.authRequired !== true) throw new Error('תשובה לא צפויה מהשרת');
       setSession(s);
-      setUser(s?.user || null);
-    });
+      setUser(s.user || null);
+    }).catch((e) => setSessionError(e.message));
   }, []);
+  useEffect(() => { loadSession(); }, [loadSession]);
   const ready = session === null || !!user;
 
   useEffect(() => {
@@ -66,6 +73,18 @@ export default function App() {
     setNeedLogin(false);
   }, []);
 
+  if (sessionError) {
+    return (
+      <div className="login">
+        <div className="card login-card">
+          <div className="brand-logo login-logo">👨‍🍳</div>
+          <h1>CheffO3</h1>
+          <div className="alert alert-error">לא ניתן להתחבר לשרת: {sessionError}</div>
+          <button type="button" className="btn btn-primary" onClick={loadSession}>ניסיון חוזר</button>
+        </div>
+      </div>
+    );
+  }
   if (session === undefined) return <div className="loading splash">👨‍🍳</div>;
   if ((session && !user) || needLogin) return <Login session={session} onLoggedIn={onLoggedIn} />;
 

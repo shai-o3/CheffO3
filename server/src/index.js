@@ -42,6 +42,9 @@ export function createApp() {
 
   const api = express.Router();
 
+  // The local server has no accounts (single user).
+  api.get('/session', (_req, res) => res.json({ authRequired: false }));
+
   api.get('/meta', (_req, res) => res.json({
     aiEnabled: aiEnabled(), whatsappBot: wa.whatsappConfigured(),
     ingredientCategories: INGREDIENT_CATEGORIES, recipeCategories: RECIPE_CATEGORIES, difficulties: DIFFICULTIES,

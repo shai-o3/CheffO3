@@ -23,8 +23,8 @@ const qs = (o) => {
 };
 
 export const auth = {
-  /** null when the server has no accounts (local server, demo) */
-  session: () => request('GET', '/session').catch(() => null),
+  /** { authRequired: false } on servers without accounts (local server, demo) */
+  session: () => request('GET', '/session'),
   register: (body) => request('POST', '/auth/register', body),
   login: (email, password) => request('POST', '/auth/login', { email, password }),
   google: (credential) => request('POST', '/auth/google', { credential }),
