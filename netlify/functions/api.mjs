@@ -20,6 +20,7 @@ import { getStore } from '@netlify/blobs';
 import { handle, seedState, emptyState, createRecipe, listShopping, httpError } from '../../server/src/core.js';
 import { lookupImage } from '../../server/src/imageProviders.js';
 import { imageGenEnabled, generateDishImage, dishKey } from '../../server/src/imageGen.js';
+import { ensureTagged } from '../../server/src/tagging.js';
 import { cleanWhatsAppText, shoppingListToWhatsApp } from '../../server/src/whatsappFormat.js';
 import {
   whatsappConfigured, verifyWebhook, signatureValid, incomingMessages, sendText, downloadMedia, HELP,
@@ -83,9 +84,11 @@ export async function withState(s, userId, fn) {
     const entry = await s.data.getWithMetadata(key, { type: 'json' });
     const isNew = !entry;
     const state = entry?.data ?? (process.env.SEED === '0' ? emptyState() : seedState());
+    // One-time automatic tagging of recipes saved before tags existed (per TAGS_VERSION).
+    const retagged = ensureTagged(state);
     const ctx = { ...makeCtx(s), state, dirty: false };
     const result = await fn(ctx);
-    if (!ctx.dirty && !isNew) return result;
+    if (!ctx.dirty && !isNew && !retagged) return result;
     const { modified } = await s.data.setJSON(key, state, isNew ? { onlyIfNew: true } : { onlyIfMatch: entry.etag });
     if (modified) return result;
     if (!ctx.dirty) return result; // first state was created concurrently; our read is still valid

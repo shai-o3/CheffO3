@@ -12,6 +12,14 @@ export function RecipeCover({ recipe, className = '', generating = false }) {
   );
 }
 
+// The most useful tags at a glance: kashrut and diet first.
+const CARD_TAGS = ['בשרי', 'חלבי', 'פרווה', 'טבעוני', 'צמחוני', 'ללא גלוטן'];
+function CardTags({ tags = [] }) {
+  const shown = CARD_TAGS.filter((t) => tags.includes(t)).filter((t, _i, arr) => !(t === 'צמחוני' && arr.includes('טבעוני')));
+  if (!shown.length) return null;
+  return <div className="card-tags">{shown.map((t) => <span key={t} className={`card-tag t-${CARD_TAGS.indexOf(t)}`}>{t}</span>)}</div>;
+}
+
 export default function RecipeCard({ recipe, onFavorite, onImageChange, extra, generating = false }) {
   const t = totalTime(recipe);
   return (
@@ -22,6 +30,7 @@ export default function RecipeCard({ recipe, onFavorite, onImageChange, extra, g
           <div className="recipe-card-cat">{recipe.category}</div>
           <h3>{recipe.title}</h3>
           {recipe.description && <p className="clamp">{recipe.description}</p>}
+          <CardTags tags={recipe.tags} />
           <div className="meta-row">
             {t > 0 && <span>⏱️ {t} דק'</span>}
             {recipe.servings && <span>🍽️ {recipe.servings}</span>}

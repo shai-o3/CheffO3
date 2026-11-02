@@ -246,6 +246,21 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .image-option small { color: var(--muted); }
 .image-option-icon { font-size: 1.5rem; flex: none; }
 
+/* tag filter */
+.tag-filter { margin: 10px 0 4px; }
+.tag-filter-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.tag-groups { display: grid; gap: 8px; margin-top: 10px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.tag-group { display: grid; grid-template-columns: 110px 1fr; align-items: start; gap: 10px; }
+.tag-group-name { font-weight: 700; font-size: 0.85rem; color: var(--muted); padding-top: 6px; }
+.tag-group .chips { margin: 0; }
+.chip small { opacity: 0.6; font-size: 0.75em; }
+@media (max-width: 720px) { .tag-group { grid-template-columns: 1fr; gap: 2px; } .tag-group-name { padding-top: 0; } }
+.card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 8px; }
+.card-tag { font-size: 0.72rem; font-weight: 700; padding: 1px 8px; border-radius: 99px; background: var(--surface-2); color: var(--text); }
+.card-tag.t-0 { background: color-mix(in srgb, var(--danger) 16%, var(--surface)); }
+.card-tag.t-1 { background: color-mix(in srgb, #3b82f6 18%, var(--surface)); }
+.card-tag.t-2, .card-tag.t-3, .card-tag.t-4 { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+
 /* match */
 .match-info { padding: 0 16px 16px; display: grid; gap: 8px; }
 .match-bar { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }

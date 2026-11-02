@@ -11,12 +11,13 @@ import {
 } from './hebrew.js';
 import { SAMPLE_RECIPES } from './sampleRecipes.js';
 import { cleanWhatsAppText, recipeToWhatsApp, shoppingListToWhatsApp } from './whatsappFormat.js';
+import { mergeTags, updateExclusions, TAG_GROUPS, TAGS_VERSION } from './tagging.js';
 
 const now = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
 const num = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Number(v));
 export const httpError = (status, message) => Object.assign(new Error(message), { status });
 
-export const emptyState = () => ({ seq: 1, recipes: [], shopping: [], pantry: [] });
+export const emptyState = () => ({ seq: 1, recipes: [], shopping: [], pantry: [], tagsVersion: TAGS_VERSION });
 
 export function seedState(state = emptyState()) {
   for (const r of SAMPLE_RECIPES) createRecipe(state, { ...r, source: 'מתכוני דוגמה' });
@@ -37,13 +38,17 @@ function buildRecipe(state, data, id, existing = {}) {
     .map((st) => (typeof st === 'string' ? { text: st } : st))
     .filter((st) => String(st.text || '').trim())
     .map((st, position) => ({ id: state.seq++, recipe_id: id, position, text: String(st.text).trim(), tip: st.tip || '', minutes: num(st.minutes) }));
-  return {
+  const recipe = {
     id, title: String(data.title).trim(), description: data.description || '', emoji: data.emoji || '🍽️', image: data.image || null,
     category: data.category || 'עיקריות', cuisine: data.cuisine || '', prep_minutes: num(data.prep_minutes),
     cook_minutes: num(data.cook_minutes), servings: num(data.servings) || 4, difficulty: data.difficulty || 'בינוני',
     tags: Array.isArray(data.tags) ? data.tags : [], source: data.source || '', notes: data.notes || '', favorite: !!data.favorite,
     created_at: existing.created_at || now(), updated_at: now(), ingredients, steps,
+    tags_excluded: data.tags_excluded || existing.tags_excluded || [],
   };
+  // Automatic tags (course, kashrut, diet, main ingredient, style) on every save.
+  recipe.tags = mergeTags(recipe, { excluded: recipe.tags_excluded });
+  return recipe;
 }
 
 export function createRecipe(state, data) {
@@ -66,6 +71,7 @@ function listRecipes(state, p) {
   return state.recipes
     .filter((r) => (!p.get('category') || r.category === p.get('category'))
       && (!p.get('tag') || r.tags.includes(p.get('tag')))
+      && (!p.get('tags') || p.get('tags').split(',').filter(Boolean).every((t) => r.tags.includes(t)))
       && (p.get('favorite') !== '1' || r.favorite)
       && (!q || [r.title, r.description, ...r.tags, ...r.ingredients.map((i) => i.name)].some((t) => t.includes(q))))
     .sort((a, b) => b.favorite - a.favorite || b.updated_at.localeCompare(a.updated_at) || b.id - a.id)
@@ -152,7 +158,7 @@ export async function handle(ctx, method, path, params, body) {
     return {
       aiEnabled: !!ctx.ai, imageGen: !!ctx.generateImage, whatsappBot: !!ctx.whatsappBot, demo: !!ctx.demo,
       ingredientCategories: INGREDIENT_CATEGORIES, recipeCategories: RECIPE_CATEGORIES, difficulties: DIFFICULTIES,
-      staples: STAPLES, tags: allTags(state),
+      staples: STAPLES, tags: allTags(state), tagGroups: TAG_GROUPS,
       knownIngredients: [...new Set(state.recipes.flatMap((r) => r.ingredients.map((i) => i.name)))],
     };
   }
@@ -163,7 +169,8 @@ export async function handle(ctx, method, path, params, body) {
   if (route('POST', /^\/recipes$/)) return mutate(createRecipe(state, body));
   if (route('PUT', /^\/recipes\/(\d+)$/)) {
     const cur = getRecipe(state, m[1]);
-    const next = buildRecipe(state, { ...cur, ...body }, cur.id, cur);
+    const tagsExcluded = Array.isArray(body.tags) ? updateExclusions(cur, body.tags, cur.tags_excluded || []) : cur.tags_excluded;
+    const next = buildRecipe(state, { ...cur, ...body, tags_excluded: tagsExcluded }, cur.id, cur);
     state.recipes[state.recipes.indexOf(cur)] = next;
     return mutate(next);
   }

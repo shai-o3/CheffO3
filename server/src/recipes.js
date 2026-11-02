@@ -1,19 +1,20 @@
 import { db, tx } from './db.js';
 import { guessCategory, guessEmoji, ingredientMatches, normalizeName, STAPLES } from './hebrew.js';
+import { mergeTags, updateExclusions, TAGS_VERSION } from './tagging.js';
 
 const num = (v) => (v === '' || v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
 function rowToRecipe(r) {
-  return { ...r, tags: JSON.parse(r.tags || '[]'), favorite: !!r.favorite };
+  return { ...r, tags: JSON.parse(r.tags || '[]'), tags_excluded: JSON.parse(r.tags_excluded || '[]'), favorite: !!r.favorite };
 }
 
-export function listRecipes({ q, category, tag, favorite } = {}) {
+export function listRecipes({ q, category, tag, tags, favorite } = {}) {
   let sql = `SELECT r.*, (SELECT COUNT(*) FROM recipe_ingredients i WHERE i.recipe_id = r.id) AS ingredient_count
              FROM recipes r WHERE 1=1`;
   const params = [];
   if (category) { sql += ' AND r.category = ?'; params.push(category); }
   if (favorite) sql += ' AND r.favorite = 1';
-  if (tag) { sql += ' AND r.tags LIKE ?'; params.push(`%"${tag}"%`); }
+  for (const t of [tag, ...String(tags || '').split(',')].filter(Boolean)) { sql += ' AND r.tags LIKE ?'; params.push(`%"${t}"%`); }
   if (q) {
     sql += ` AND (r.title LIKE ? OR r.description LIKE ? OR r.tags LIKE ?
              OR EXISTS (SELECT 1 FROM recipe_ingredients i WHERE i.recipe_id = r.id AND i.name LIKE ?))`;
@@ -71,7 +72,7 @@ export function createRecipe(data) {
       VALUES (${FIELDS.map(() => '?').join(', ')}, ?, ?)`).run(...vals, JSON.stringify(data.tags || []), data.favorite ? 1 : 0);
     const id = Number(res.lastInsertRowid);
     writeChildren(id, data);
-    return getRecipe(id);
+    return applyTags(id, []);
   });
 }
 
@@ -86,8 +87,27 @@ export function updateRecipe(id, data) {
     if (data.ingredients || data.steps) {
       writeChildren(id, { ingredients: data.ingredients || existing.ingredients, steps: data.steps || existing.steps });
     }
-    return getRecipe(id);
+    const excluded = Array.isArray(data.tags) ? updateExclusions(existing, data.tags, existing.tags_excluded) : existing.tags_excluded;
+    return applyTags(id, excluded);
   });
+}
+
+/** Recompute a saved recipe's tags (user tags + automatic tags − excluded). */
+function applyTags(id, excluded) {
+  const r = getRecipe(id);
+  const tags = mergeTags(r, { excluded });
+  db.prepare('UPDATE recipes SET tags = ?, tags_excluded = ? WHERE id = ?').run(JSON.stringify(tags), JSON.stringify(excluded), id);
+  return { ...r, tags, tags_excluded: excluded };
+}
+
+/** One-time automatic tagging of existing recipes (tracked with SQLite's user_version). */
+export function retagAll() {
+  const { user_version: v } = db.prepare('PRAGMA user_version').get();
+  if (v >= TAGS_VERSION) return 0;
+  const ids = db.prepare('SELECT id FROM recipes').all().map((r) => r.id);
+  tx(() => ids.forEach((id) => applyTags(id, getRecipe(id).tags_excluded)));
+  db.exec(`PRAGMA user_version = ${TAGS_VERSION}`);
+  return ids.length;
 }
 
 export function setFavorite(id, favorite) {

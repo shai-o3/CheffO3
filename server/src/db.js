@@ -89,6 +89,9 @@ CREATE INDEX IF NOT EXISTS idx_ing_recipe ON recipe_ingredients(recipe_id);
 CREATE INDEX IF NOT EXISTS idx_steps_recipe ON recipe_steps(recipe_id);
 `);
 
+// Migrations for databases created by older versions.
+try { db.exec("ALTER TABLE recipes ADD COLUMN tags_excluded TEXT DEFAULT '[]'"); } catch { /* already there */ }
+
 /** Run fn inside a transaction. */
 export function tx(fn) {
   db.exec('BEGIN');

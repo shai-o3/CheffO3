@@ -12,6 +12,7 @@ import { getIngredientImage, setManualImage, resetImage } from './images.js';
 import { aiEnabled, extractRecipe, suggestRecipes, adaptRecipe, askChef, splitRecipes } from './ai.js';
 import { imageGenEnabled, generateDishImage } from './imageGen.js';
 import { INGREDIENT_CATEGORIES, RECIPE_CATEGORIES, DIFFICULTIES, STAPLES, splitRecipesHeuristic } from './hebrew.js';
+import { TAG_GROUPS } from './tagging.js';
 import * as wa from './whatsapp.js';
 import { seedIfEmpty } from './seed.js';
 
@@ -49,12 +50,12 @@ export function createApp() {
   api.get('/meta', (_req, res) => res.json({
     aiEnabled: aiEnabled(), imageGen: imageGenEnabled(), whatsappBot: wa.whatsappConfigured(),
     ingredientCategories: INGREDIENT_CATEGORIES, recipeCategories: RECIPE_CATEGORIES, difficulties: DIFFICULTIES,
-    staples: STAPLES, tags: recipes.allTags(), knownIngredients: recipes.knownIngredients(),
+    staples: STAPLES, tags: recipes.allTags(), tagGroups: TAG_GROUPS, knownIngredients: recipes.knownIngredients(),
   }));
 
   // ---- recipes
   api.get('/recipes', (req, res) => res.json(recipes.listRecipes({
-    q: req.query.q, category: req.query.category, tag: req.query.tag, favorite: req.query.favorite === '1',
+    q: req.query.q, category: req.query.category, tag: req.query.tag, tags: req.query.tags, favorite: req.query.favorite === '1',
   })));
   api.get('/recipes/:id', (req, res) => {
     const r = recipes.getRecipe(Number(req.params.id));
@@ -212,6 +213,7 @@ export function createApp() {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   seedIfEmpty();
+  recipes.retagAll();
   const port = Number(process.env.PORT) || 3001;
   createApp().listen(port, () => {
     console.log(`CheffO3 server on http://localhost:${port}  (AI: ${aiEnabled() ? 'on' : 'off'}, WhatsApp bot: ${wa.whatsappConfigured() ? 'on' : 'off'})`);

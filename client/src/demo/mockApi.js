@@ -3,6 +3,7 @@
 // No AI and no store-image lookup here: those need a server.
 
 import { handle, seedState } from '../../../server/src/core.js';
+import { ensureTagged } from '../../../server/src/tagging.js';
 
 const KEY = 'cheffo3-demo-v2';
 
@@ -25,6 +26,7 @@ const fileToDataUrl = (file) => new Promise((resolve, reject) => {
 export function installMockApi() {
   const state = load() || { ...seedState(), images: {} };
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage blocked */ } };
+  if (ensureTagged(state)) save();
   const ctx = {
     state,
     demo: true,

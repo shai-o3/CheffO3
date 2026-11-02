@@ -86,7 +86,7 @@ export default function RecipeEditor({ initial, onSave, saving, submitLabel = '�
               {(meta?.difficulties || ['קל', 'בינוני', 'מאתגר']).map((c) => <option key={c}>{c}</option>)}
             </select>
           </label>
-          <label className="span-2">תגיות
+          <label className="span-2">תגיות <small className="muted">(סוג מנה, כשרות, תזונה ומרכיב עיקרי מתווספים אוטומטית בשמירה; אפשר למחוק תגית שלא מתאימה)</small>
             <div className="chips">
               {r.tags.map((t) => (
                 <span key={t} className="chip chip-sm static">#{t} <button type="button" onClick={() => set('tags', r.tags.filter((x) => x !== t))}>✕</button></span>

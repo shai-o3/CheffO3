@@ -3,22 +3,22 @@ import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useApp } from '../App.jsx';
 import RecipeCard from '../components/RecipeCard.jsx';
+import TagFilter from '../components/TagFilter.jsx';
 import { ensureDishImage } from '../dishImages.js';
 
 export default function Home() {
   const { meta } = useApp();
   const [recipes, setRecipes] = useState(null);
   const [q, setQ] = useState('');
-  const [category, setCategory] = useState('');
-  const [tag, setTag] = useState('');
+  const [tags, setTags] = useState([]);
   const [favorite, setFavorite] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
-      api.recipes({ q, category, tag, favorite }).then(setRecipes).catch(() => setRecipes([]));
+      api.recipes({ q, tags: tags.join(','), favorite }).then(setRecipes).catch(() => setRecipes([]));
     }, 200);
     return () => clearTimeout(t);
-  }, [q, category, tag, favorite]);
+  }, [q, tags, favorite]);
 
   // Fill in missing dish photos, one at a time.
   const [generatingId, setGeneratingId] = useState(null);
@@ -42,7 +42,6 @@ export default function Home() {
     setRecipes((list) => list.map((x) => (x.id === r.id ? { ...x, favorite: updated.favorite } : x)));
   };
 
-  const categories = meta?.recipeCategories || [];
   return (
     <>
       <section className="hero">
@@ -68,23 +67,7 @@ export default function Home() {
         </button>
       </div>
 
-      <div className="chips scroll-x">
-        <button type="button" className={`chip ${!category ? 'active' : ''}`} onClick={() => setCategory('')}>הכל</button>
-        {categories.map((c) => (
-          <button type="button" key={c} className={`chip ${category === c ? 'active' : ''}`} onClick={() => setCategory(category === c ? '' : c)}>
-            {c}
-          </button>
-        ))}
-      </div>
-      {meta?.tags?.length > 0 && (
-        <div className="chips scroll-x tags-row">
-          {meta.tags.slice(0, 20).map((t) => (
-            <button type="button" key={t.name} className={`chip chip-sm ${tag === t.name ? 'active' : ''}`} onClick={() => setTag(tag === t.name ? '' : t.name)}>
-              #{t.name}
-            </button>
-          ))}
-        </div>
-      )}
+      <TagFilter meta={meta} selected={tags} onChange={setTags} />
 
       {recipes === null ? (
         <div className="loading">טוען מתכונים...</div>
