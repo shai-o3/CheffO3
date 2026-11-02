@@ -107,7 +107,7 @@ export default function App() {
             </NavLink>
           ))}
         </nav>
-        {user && <UserMenu user={user} onUser={setUser} notify={notify} />}
+        {user && <UserMenu user={user} onUser={setUser} notify={notify} googleClientId={session?.googleClientId} />}
       </header>
       <main className="container">
         {meta?.demo && (

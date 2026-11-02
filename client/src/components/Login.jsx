@@ -1,18 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { auth } from '../api.js';
-
-const GSI_SRC = 'https://accounts.google.com/gsi/client';
-
-function loadGoogleScript() {
-  if (window.google?.accounts?.id) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${GSI_SRC}"]`);
-    const s = existing || Object.assign(document.createElement('script'), { src: GSI_SRC, async: true });
-    s.addEventListener('load', () => resolve());
-    s.addEventListener('error', () => reject(new Error('Google script failed')));
-    if (!existing) document.head.appendChild(s);
-  });
-}
+import GoogleButton from './GoogleButton.jsx';
 
 /** Login / registration screen: email + password, and "Continue with Google". */
 export default function Login({ session, onLoggedIn }) {
@@ -22,34 +10,18 @@ export default function Login({ session, onLoggedIn }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const googleRef = useRef(null);
 
-  useEffect(() => {
-    if (!session?.googleClientId) return undefined;
-    let cancelled = false;
-    loadGoogleScript().then(() => {
-      if (cancelled || !googleRef.current) return;
-      window.google.accounts.id.initialize({
-        client_id: session.googleClientId,
-        callback: async ({ credential }) => {
-          setBusy(true);
-          setError('');
-          try {
-            const { user } = await auth.google(credential);
-            onLoggedIn(user);
-          } catch (e) {
-            setError(e.message);
-            setBusy(false);
-          }
-        },
-      });
-      window.google.accounts.id.renderButton(googleRef.current, {
-        theme: 'outline', size: 'large', text: 'continue_with', shape: 'pill', locale: 'he',
-        width: Math.min(320, googleRef.current.offsetWidth || 320),
-      });
-    }).catch(() => setError('לא ניתן לטעון את הכניסה עם Google כרגע'));
-    return () => { cancelled = true; };
-  }, [session?.googleClientId, onLoggedIn]);
+  const onGoogle = async (credential) => {
+    setBusy(true);
+    setError('');
+    try {
+      const { user } = await auth.google(credential);
+      onLoggedIn(user);
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -78,7 +50,7 @@ export default function Login({ session, onLoggedIn }) {
 
         {session?.googleClientId && (
           <>
-            <div ref={googleRef} className="google-btn" />
+            <GoogleButton clientId={session.googleClientId} onCredential={onGoogle} />
             <div className="or"><span>או</span></div>
           </>
         )}

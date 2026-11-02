@@ -101,7 +101,36 @@ async function sessionSecret(s) {
 }
 
 const userKey = (email) => `user/${encodeURIComponent(email)}`;
-const publicUser = (u) => ({ id: u.id, email: u.email, name: u.name, phone: u.phone || '', picture: u.picture || '', hasPassword: !!u.passwordHash });
+// Profile picture: an uploaded photo wins over the Google photo.
+const publicUser = (u) => ({
+  id: u.id, email: u.email, name: u.name, phone: u.phone || '',
+  picture: u.uploadedPicture || u.googlePicture || u.picture || '',
+  hasUploadedPicture: !!u.uploadedPicture,
+  googleLinked: !!u.googleSub,
+  hasPassword: !!u.passwordHash,
+});
+const googleKey = (sub) => `google/${sub}`;
+const saveUser = (s, u) => s.users.setJSON(userKey(u.email), u);
+
+async function verifyGoogle(credential) {
+  if (!process.env.GOOGLE_CLIENT_ID) throw httpError(400, 'כניסה עם Google לא הוגדרה');
+  try {
+    return await verifyGoogleIdToken(credential, process.env.GOOGLE_CLIENT_ID);
+  } catch (e) {
+    console.error('google sign-in', e.message);
+    await new Promise((r) => setTimeout(r, 700));
+    throw httpError(401, 'הכניסה עם Google נכשלה. נסו שוב.');
+  }
+}
+
+/** Attach a Google identity to an account and refresh its Google photo. */
+async function linkGoogle(s, account, claims) {
+  await s.users.setJSON(googleKey(claims.sub), { email: account.email });
+  const next = { ...account, googleSub: claims.sub, googlePicture: claims.picture || account.googlePicture || '' };
+  if (!next.name && claims.name) next.name = claims.name;
+  if (JSON.stringify(next) !== JSON.stringify(account)) await saveUser(s, next);
+  return next;
+}
 
 /** Israeli/international phone → digits as WhatsApp sends them (e.g. 972501234567). */
 export const normalizePhone = (p) => {
@@ -179,28 +208,47 @@ async function authRoutes(req, url, s, user) {
   }
 
   if (p === '/api/auth/google' && req.method === 'POST') {
-    if (!process.env.GOOGLE_CLIENT_ID) return json({ error: 'כניסה עם Google לא הוגדרה' }, { status: 400 });
     const { credential } = await req.json().catch(() => ({}));
-    let claims;
-    try {
-      claims = await verifyGoogleIdToken(credential, process.env.GOOGLE_CLIENT_ID);
-    } catch (e) {
-      console.error('google sign-in', e.message);
-      return slowFail('הכניסה עם Google נכשלה. נסו שוב.');
-    }
-    const email = normalizeEmail(claims.email);
+    const claims = await verifyGoogle(credential);
+    // Find the account: first by the linked Google identity, then by email.
+    const link = await s.users.get(googleKey(claims.sub), { type: 'json' });
+    const email = link?.email || normalizeEmail(claims.email);
     let account = await s.users.get(userKey(email), { type: 'json' });
     if (account) {
       if (account.googleSub && account.googleSub !== claims.sub) return slowFail('חשבון Google אחר כבר מקושר לאימייל הזה');
-      if (!account.googleSub || !account.picture) {
-        account = { ...account, googleSub: claims.sub, picture: account.picture || claims.picture || '' };
-        await s.users.setJSON(userKey(email), account);
-      }
+      account = await linkGoogle(s, account, claims);
     } else {
       if (!emailAllowed(email)) return json({ error: 'ההרשמה לאפליקציה מוגבלת. פנו למנהל האפליקציה.' }, { status: 403 });
-      account = await createUser(s, { email, name: claims.name || email.split('@')[0], googleSub: claims.sub, picture: claims.picture || '' });
+      account = await createUser(s, { email, name: claims.name || email.split('@')[0] });
+      account = await linkGoogle(s, account, claims);
     }
     return json({ user: publicUser(account) }, { headers: { 'Set-Cookie': await sessionCookie(s, account) } });
+  }
+
+  // Connect a Google account to the logged-in user (also brings in the Google photo).
+  if (p === '/api/me/google' && req.method === 'POST' && user) {
+    const { credential } = await req.json().catch(() => ({}));
+    const claims = await verifyGoogle(credential);
+    const link = await s.users.get(googleKey(claims.sub), { type: 'json' });
+    if (link && link.email !== user.email) return json({ error: 'חשבון ה-Google הזה כבר מחובר למשתמש אחר' }, { status: 409 });
+    if (user.googleSub && user.googleSub !== claims.sub) await s.users.delete(googleKey(user.googleSub));
+    return json(publicUser(await linkGoogle(s, user, claims)));
+  }
+
+  if (p === '/api/me/picture' && user) {
+    if (req.method === 'POST') {
+      const form = await req.formData();
+      const file = form.get('image');
+      if (!file || typeof file === 'string') return json({ error: 'יש להעלות קובץ תמונה' }, { status: 400 });
+      const next = { ...user, uploadedPicture: await makeCtx(s).saveUpload(file) };
+      await saveUser(s, next);
+      return json(publicUser(next));
+    }
+    if (req.method === 'DELETE') {
+      const { uploadedPicture: _removed, ...next } = user;
+      await saveUser(s, next);
+      return json(publicUser(next));
+    }
   }
 
   if (p === '/api/auth/logout' && req.method === 'POST') {

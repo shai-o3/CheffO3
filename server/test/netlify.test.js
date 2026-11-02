@@ -230,3 +230,34 @@ test('packages used by the function resolve from the repo root (as Netlify packs
     assert.ok(!resolved.includes('/server/node_modules/'), `${pkg} must be a root dependency (resolved to ${resolved})`);
   }
 });
+
+test('profile picture: from Google, linking an existing account, upload and removal', async () => {
+  // New Google user gets the Google photo; a later login refreshes it.
+  const g = client();
+  let r = await g('POST', '/api/auth/google', { credential: googleToken({ sub: 'pic-1', email: 'pic@gmail.com', name: 'Pic', picture: 'https://lh3.googleusercontent.com/a/old' }) });
+  assert.equal(r.data.user.picture, 'https://lh3.googleusercontent.com/a/old');
+  r = await g('POST', '/api/auth/google', { credential: googleToken({ sub: 'pic-1', email: 'pic@gmail.com', picture: 'https://lh3.googleusercontent.com/a/new' }) });
+  assert.equal(r.data.user.picture, 'https://lh3.googleusercontent.com/a/new');
+
+  // Password account links a Google account with a different email and gets its photo.
+  const p = client();
+  await p('POST', '/api/auth/register', { email: 'pw@example.com', password: 'password-123' });
+  r = await p('POST', '/api/me/google', { credential: googleToken({ sub: 'pic-2', email: 'other@gmail.com', picture: 'https://lh3.googleusercontent.com/a/pw' }) });
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.picture, 'https://lh3.googleusercontent.com/a/pw');
+  assert.equal(r.data.googleLinked, true);
+  // ...and can now sign in with that Google account.
+  const again = client();
+  r = await again('POST', '/api/auth/google', { credential: googleToken({ sub: 'pic-2', email: 'other@gmail.com' }) });
+  assert.equal(r.data.user.email, 'pw@example.com');
+  // The same Google account can't be linked to someone else.
+  assert.equal((await g('POST', '/api/me/google', { credential: googleToken({ sub: 'pic-2', email: 'other@gmail.com' }) })).status, 409);
+
+  // Uploaded photo wins; removing it falls back to the Google photo.
+  const form = new FormData();
+  form.append('image', new Blob([Buffer.from('jpeg')], { type: 'image/jpeg' }), 'me.jpg');
+  r = await p('POST', '/api/me/picture', undefined, { form });
+  assert.match(r.data.picture, /^\/uploads\//);
+  r = await p('DELETE', '/api/me/picture');
+  assert.equal(r.data.picture, 'https://lh3.googleusercontent.com/a/pw');
+});

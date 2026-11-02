@@ -1,8 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { auth } from '../api.js';
+import GoogleButton from './GoogleButton.jsx';
+
+/** Round profile picture, falling back to the first letter of the name. */
+export function Avatar({ user, size = 40 }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [user.picture]);
+  const initial = (user.name || user.email || '?').trim().charAt(0).toUpperCase();
+  return (
+    <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.42 }}>
+      {user.picture && !broken
+        ? <img src={user.picture} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+        : <span>{initial}</span>}
+    </span>
+  );
+}
 
 /** Avatar button in the header: account settings (name, WhatsApp phone, password) and logout. */
-export default function UserMenu({ user, onUser, notify }) {
+export default function UserMenu({ user, onUser, notify, googleClientId }) {
   const [open, setOpen] = useState(false);
   const [settings, setSettings] = useState(false);
   const ref = useRef(null);
@@ -19,11 +35,10 @@ export default function UserMenu({ user, onUser, notify }) {
     window.location.href = '/';
   };
 
-  const initial = (user.name || user.email || '?').trim().charAt(0).toUpperCase();
   return (
     <div className="user-menu" ref={ref}>
-      <button type="button" className="avatar" onClick={() => setOpen((o) => !o)} aria-label="החשבון שלי" aria-expanded={open}>
-        {user.picture ? <img src={user.picture} alt="" referrerPolicy="no-referrer" /> : <span>{initial}</span>}
+      <button type="button" className="avatar-btn" onClick={() => setOpen((o) => !o)} aria-label="החשבון שלי" aria-expanded={open}>
+        <Avatar user={user} />
       </button>
       {open && (
         <div className="user-pop">
@@ -35,18 +50,29 @@ export default function UserMenu({ user, onUser, notify }) {
           <button type="button" onClick={logout}>🚪 התנתקות</button>
         </div>
       )}
-      {settings && <Settings user={user} onUser={onUser} notify={notify} onClose={() => setSettings(false)} />}
+      {settings && <Settings user={user} onUser={onUser} notify={notify} googleClientId={googleClientId} onClose={() => setSettings(false)} />}
     </div>
   );
 }
 
-function Settings({ user, onUser, notify, onClose }) {
+function Settings({ user, onUser, notify, googleClientId, onClose }) {
   const [name, setName] = useState(user.name || '');
   const [phone, setPhone] = useState(user.phone || '');
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+
+  const pictureAction = async (fn, message) => {
+    setError('');
+    try {
+      onUser(await fn());
+      notify(message);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const save = async (e) => {
     e.preventDefault();
@@ -65,10 +91,33 @@ function Settings({ user, onUser, notify, onClose }) {
     }
   };
 
-  return (
+  // Rendered into <body>: the sticky header's backdrop-filter would otherwise clip it.
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <form className="card modal" onClick={(e) => e.stopPropagation()} onSubmit={save}>
         <h2>⚙️ הגדרות חשבון</h2>
+        <div className="profile-picture">
+          <Avatar user={user} size={72} />
+          <div className="profile-picture-actions">
+            <button type="button" className="btn btn-sm" onClick={() => fileRef.current.click()}>📷 העלאת תמונה</button>
+            {user.hasUploadedPicture && (
+              <button type="button" className="btn btn-sm" onClick={() => pictureAction(auth.removePicture, 'התמונה הוסרה')}>
+                {user.googleLinked ? 'חזרה לתמונה מ-Google' : 'הסרת התמונה'}
+              </button>
+            )}
+            <input
+              ref={fileRef} type="file" accept="image/*" hidden
+              onChange={(e) => e.target.files[0] && pictureAction(() => auth.uploadPicture(e.target.files[0]), '📷 התמונה עודכנה')}
+            />
+          </div>
+        </div>
+        {googleClientId && !user.googleLinked && (
+          <div className="link-google">
+            <small className="muted">חיבור חשבון Google מוסיף את תמונת הפרופיל שלך, ומאפשר כניסה גם עם Google.</small>
+            <GoogleButton clientId={googleClientId} text="signin_with" onCredential={(c) => pictureAction(() => auth.linkGoogle(c), '✅ חשבון Google חובר')} />
+          </div>
+        )}
+        {user.googleLinked && <small className="muted">✓ מחובר לחשבון Google</small>}
         <label htmlFor="set-name">שם</label>
         <input id="set-name" value={name} onChange={(e) => setName(e.target.value)} />
         <label htmlFor="set-phone">טלפון לוואטסאפ</label>
@@ -89,6 +138,7 @@ function Settings({ user, onUser, notify, onClose }) {
           <button className="btn btn-primary" disabled={busy}>{busy ? 'שומר...' : 'שמירה'}</button>
         </div>
       </form>
-    </div>
+    </div>,
+    document.body,
   );
 }

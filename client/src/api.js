@@ -31,6 +31,13 @@ export const auth = {
   logout: () => request('POST', '/auth/logout', {}),
   updateMe: (patch) => request('PUT', '/me', patch),
   changePassword: (current, next) => request('POST', '/me/password', { current, next }),
+  linkGoogle: (credential) => request('POST', '/me/google', { credential }),
+  uploadPicture: async (file) => {
+    const f = new FormData();
+    f.append('image', await compressImage(file, { maxDim: 400 }));
+    return request('POST', '/me/picture', null, { form: f });
+  },
+  removePicture: () => request('DELETE', '/me/picture'),
 };
 
 export const api = {
