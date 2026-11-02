@@ -218,3 +218,15 @@ test('WhatsApp webhook verification works without login', async () => {
   const r = await client()('GET', '/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=vt&hub.challenge=77');
   assert.equal(r.data, '77');
 });
+
+test('packages used by the function resolve from the repo root (as Netlify packs it)', async () => {
+  // Netlify traces the function from netlify/functions and only ships packages it can
+  // resolve from there, i.e. from the root node_modules, not server/node_modules.
+  const { createRequire } = await import('node:module');
+  const fnDir = new URL('../../netlify/functions/', import.meta.url);
+  const req = createRequire(new URL('api.mjs', fnDir));
+  for (const pkg of ['@anthropic-ai/sdk', 'zod', '@netlify/blobs']) {
+    const resolved = req.resolve(pkg);
+    assert.ok(!resolved.includes('/server/node_modules/'), `${pkg} must be a root dependency (resolved to ${resolved})`);
+  }
+});
