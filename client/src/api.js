@@ -63,6 +63,7 @@ export const api = {
     if (keepImage) f.append('keepImage', '1');
     return request('POST', '/ai/extract', null, { form: f });
   },
+  split: (text) => request('POST', '/ai/split', { text }),
   suggest: (body) => request('POST', '/ai/suggest', body),
   adapt: (id, instruction) => request('POST', `/recipes/${id}/adapt`, { instruction }),
   ask: (id, question, history) => request('POST', `/recipes/${id}/ask`, { question, history }),

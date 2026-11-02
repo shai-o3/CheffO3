@@ -9,9 +9,9 @@ import { UPLOADS_DIR } from './db.js';
 import * as recipes from './recipes.js';
 import * as shopping from './shopping.js';
 import { getIngredientImage, setManualImage, resetImage } from './images.js';
-import { aiEnabled, extractRecipe, suggestRecipes, adaptRecipe, askChef } from './ai.js';
+import { aiEnabled, extractRecipe, suggestRecipes, adaptRecipe, askChef, splitRecipes } from './ai.js';
 import { imageGenEnabled, generateDishImage } from './imageGen.js';
-import { INGREDIENT_CATEGORIES, RECIPE_CATEGORIES, DIFFICULTIES, STAPLES } from './hebrew.js';
+import { INGREDIENT_CATEGORIES, RECIPE_CATEGORIES, DIFFICULTIES, STAPLES, splitRecipesHeuristic } from './hebrew.js';
 import * as wa from './whatsapp.js';
 import { seedIfEmpty } from './seed.js';
 
@@ -104,6 +104,12 @@ export function createApp() {
     // Keep the first uploaded photo as a candidate cover image.
     if (files.length && req.body.keepImage === '1') recipe.image = saveUpload(files[0]);
     res.json(recipe);
+  }));
+  api.post('/ai/split', wrap(async (req, res) => {
+    const text = wa.cleanWhatsAppText(String(req.body.text || ''));
+    if (!text.trim()) throw Object.assign(new Error('הקובץ ריק או שלא נמצא בו טקסט'), { status: 400 });
+    if (text.length > 400_000) throw Object.assign(new Error('הקובץ ארוך מדי (מעל 400,000 תווים). חלקו אותו לכמה קבצים.'), { status: 413 });
+    res.json({ engine: aiEnabled() ? 'ai' : 'heuristic', recipes: aiEnabled() ? await splitRecipes(text) : splitRecipesHeuristic(text) });
   }));
   api.post('/ai/suggest', wrap(async (req, res) => {
     const pantry = req.body.pantry?.length ? req.body.pantry : shopping.listPantry();

@@ -3,10 +3,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { useApp } from '../App.jsx';
 import RecipeEditor, { blankRecipe } from '../components/RecipeEditor.jsx';
+import ImportFile from '../components/ImportFile.jsx';
 
 const TABS = [
   { id: 'text', label: '📝 טקסט / וואטסאפ' },
   { id: 'image', label: '📸 צילום מסך / תמונה' },
+  { id: 'file', label: '📚 ייבוא קובץ מתכונים' },
   { id: 'manual', label: '✍️ הזנה ידנית' },
 ];
 
@@ -102,6 +104,7 @@ export default function AddRecipe() {
         ))}
       </div>
 
+      {tab === 'file' ? <ImportFile /> : (
       <section className="card import-card">
         {tab === 'text' && (
           <>
@@ -157,6 +160,7 @@ export default function AddRecipe() {
         </button>
         {busy && <div className="loading">הבינה המלאכותית קוראת את המתכון ומפרקת אותו למצרכים ושלבים...</div>}
       </section>
+      )}
 
       <section className="card whatsapp-help">
         <h2>🟢 מתכונים מוואטסאפ</h2>

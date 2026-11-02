@@ -192,6 +192,28 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .cover-emoji[data-cat='ארוחת בוקר'] { background: var(--cover-yellow); }
 .cover-emoji[data-cat='מרקים'], .cover-emoji[data-cat='רטבים וממרחים'] { background: var(--cover-tan); }
 
+/* bulk import */
+.import-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.import-head h2 { margin: 0; word-break: break-all; }
+.import-head p { margin: 4px 0 0; }
+.import-progress { display: flex; align-items: center; gap: 12px; }
+.import-progress .match-bar { flex: 1; }
+.import-progress span { font-size: 0.9rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.import-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 60vh; overflow-y: auto; }
+.import-item { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.import-item.done { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.import-item.error { border-color: color-mix(in srgb, var(--danger) 50%, var(--line)); }
+.import-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; cursor: pointer; }
+.import-title { flex: 1; font-weight: 600; min-width: 0; }
+.import-status { font-size: 0.8rem; color: var(--muted); }
+.import-status.working { color: var(--primary); animation: pulse 1.2s infinite; }
+.import-status.done { color: var(--accent); font-weight: 700; }
+.import-status.error { color: var(--danger); font-weight: 700; }
+.import-error { color: var(--danger); font-size: 0.85rem; margin-top: 4px; }
+.import-text { white-space: pre-wrap; background: var(--surface-2); border-radius: 10px; padding: 10px; font: inherit; font-size: 0.88rem; max-height: 260px; overflow-y: auto; margin: 8px 0 0; }
+.import-actions { flex-wrap: wrap; }
+.dropzone small { display: block; margin-top: 6px; }
+
 /* generating dish photo */
 .cover-emoji { position: relative; }
 .cover-emoji.generating span { animation: pulse 1.4s infinite; }

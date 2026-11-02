@@ -7,7 +7,7 @@
 
 import {
   INGREDIENT_CATEGORIES, RECIPE_CATEGORIES, DIFFICULTIES, STAPLES,
-  guessCategory, guessEmoji, ingredientMatches, normalizeName, heuristicParse,
+  guessCategory, guessEmoji, ingredientMatches, normalizeName, heuristicParse, splitRecipesHeuristic,
 } from './hebrew.js';
 import { SAMPLE_RECIPES } from './sampleRecipes.js';
 import { cleanWhatsAppText, recipeToWhatsApp, shoppingListToWhatsApp } from './whatsappFormat.js';
@@ -219,6 +219,14 @@ export async function handle(ctx, method, path, params, body) {
     const recipe = await ctx.ai.extractRecipe({ text, images: await filesToImages(ctx, files) });
     if (files.length && body.get('keepImage') === '1') recipe.image = await ctx.saveUpload(files[0]);
     return recipe;
+  }
+  // Bulk import: split a long document into one chunk per recipe.
+  if (route('POST', /^\/ai\/split$/)) {
+    const text = cleanWhatsAppText(String(body?.text || ''));
+    if (!text.trim()) throw httpError(400, 'הקובץ ריק או שלא נמצא בו טקסט');
+    if (text.length > 400_000) throw httpError(413, 'הקובץ ארוך מדי (מעל 400,000 תווים). חלקו אותו לכמה קבצים.');
+    const chunks = ctx.ai ? await ctx.ai.splitRecipes(text) : splitRecipesHeuristic(text);
+    return { engine: ctx.ai ? 'ai' : 'heuristic', recipes: chunks };
   }
   if (route('POST', /^\/ai\/suggest$/)) {
     if (!ctx.ai) throw aiOff();

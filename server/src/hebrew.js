@@ -235,3 +235,66 @@ function guessRecipeCategory(title) {
   if (/שקשוק|חביתה|פנקייק/.test(title)) return 'ארוחת בוקר';
   return 'עיקריות';
 }
+
+/**
+ * Cut a document into recipe chunks given the line each recipe starts with
+ * (found in order; unmatched markers are skipped).
+ */
+export function cutByStartLines(text, starts) {
+  const positions = [];
+  let from = 0;
+  for (const s of starts) {
+    const needle = String(s.first_line || '').trim();
+    let pos = needle ? text.indexOf(needle, from) : -1;
+    if (pos === -1 && s.title) pos = text.indexOf(String(s.title).trim(), from);
+    if (pos === -1) continue;
+    // start at the beginning of that line
+    const lineStart = text.lastIndexOf('\n', pos) + 1;
+    positions.push({ pos: lineStart, title: s.title });
+    from = pos + needle.length;
+  }
+  return positions.map((p, i) => ({
+    title: p.title || '',
+    text: text.slice(p.pos, i + 1 < positions.length ? positions[i + 1].pos : undefined).trim(),
+  })).filter((c) => c.text);
+}
+
+/**
+ * No-AI fallback: split a document into recipes. Every "מצרכים:" heading marks a recipe;
+ * the recipe starts at the short title/description lines just above it (blank lines are
+ * ignored, since Word exports put one between every paragraph).
+ */
+export function splitRecipesHeuristic(text) {
+  const lines = text.split(/\r?\n/);
+  const headings = lines.map((l, i) => (ING_HEAD.test(l.trim()) ? i : -1)).filter((i) => i >= 0);
+  if (!headings.length) {
+    return text.trim() ? [{ title: lines.find((l) => l.trim())?.trim() || '', text: text.trim() }] : [];
+  }
+  const looksLikeHeader = (l) => {
+    const t = l.trim();
+    return t && t.length <= 80 && !/[.:!?]$/.test(t) && !ING_HEAD.test(t) && !STEP_HEAD.test(t);
+  };
+  // Word exports put a blank line between every paragraph; then blank lines carry no meaning.
+  const spaced = lines.filter((l) => !l.trim()).length / lines.length > 0.35;
+  const maxTake = spaced ? 2 : 3;
+  const starts = headings.map((h, k) => {
+    const floor = k ? headings[k - 1] + 1 : 0;
+    let start = h;
+    let taken = 0;
+    for (let j = h - 1; j >= floor && taken < maxTake; j--) {
+      if (!lines[j].trim()) {
+        if (!spaced && taken) break;
+        continue;
+      }
+      if (!looksLikeHeader(lines[j])) break;
+      start = j;
+      taken++;
+    }
+    return start;
+  });
+  if (lines.slice(0, starts[0]).join('').trim() === '') starts[0] = 0;
+  return starts.map((st, k) => {
+    const chunk = lines.slice(st, k + 1 < starts.length ? starts[k + 1] : undefined).join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    return { title: chunk.split('\n')[0].replace(/^#+\s*/, '').trim(), text: chunk };
+  }).filter((c) => c.text);
+}

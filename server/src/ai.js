@@ -8,7 +8,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
-import { INGREDIENT_CATEGORIES, RECIPE_CATEGORIES, DIFFICULTIES, heuristicParse, guessCategory, guessEmoji } from './hebrew.js';
+import { INGREDIENT_CATEGORIES, RECIPE_CATEGORIES, DIFFICULTIES, heuristicParse, guessCategory, guessEmoji, cutByStartLines } from './hebrew.js';
 
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-opus-5-5';
 
@@ -138,6 +138,28 @@ const SuggestionsSchema = z.object({
     missing: z.array(z.string()).describe('מצרכים שחסרים למשתמש (אם יש)'),
   })),
 });
+
+const SplitSchema = z.object({
+  recipes: z.array(z.object({
+    title: z.string().describe('שם המתכון'),
+    first_line: z.string().describe('השורה הראשונה של המתכון במסמך, מועתקת מילה במילה בדיוק כפי שהיא מופיעה (בדרך כלל הכותרת)'),
+  })),
+});
+
+/**
+ * Split a document that contains many recipes into one text chunk per recipe.
+ * The model only returns where each recipe starts; the text itself is cut locally,
+ * so the output stays small even for long documents.
+ */
+export async function splitRecipes(text) {
+  const out = await parseWithSchema({
+    system: 'אתה מזהה מתכונים בתוך מסמך. אל תשכתב ואל תתרגם דבר – רק אתר איפה כל מתכון מתחיל.',
+    content: [{ type: 'text', text: `המסמך הבא מכיל מתכון אחד או יותר. החזר רשימה של כל המתכונים לפי סדר הופעתם, ולכל מתכון את השורה הראשונה שלו כפי שהיא כתובה במסמך (תווים זהים).\n\n<document>\n${text}\n</document>` }],
+    schema: SplitSchema,
+    effort: 'low',
+  });
+  return cutByStartLines(text, out.recipes);
+}
 
 /** Generate new recipe ideas from the user's pantry. */
 export async function suggestRecipes({ pantry, preferences = '', count = 3, existingTitles = [] }) {
