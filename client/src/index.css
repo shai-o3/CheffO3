@@ -200,6 +200,30 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 }
 @media (prefers-reduced-motion: reduce) { .cover-emoji.generating span { animation: none; } }
 
+/* recipe image button + dialog */
+.recipe-hero-media { position: relative; }
+.image-btn {
+  position: absolute; z-index: 2; width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; font-size: 1.1rem;
+  background: rgba(255, 255, 255, 0.92); box-shadow: var(--shadow); display: grid; place-items: center;
+}
+.image-btn:hover { transform: scale(1.06); }
+.image-btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.image-btn.on-card { top: 10px; right: 10px; }
+.image-btn.on-hero { bottom: 14px; right: 14px; width: 48px; height: 48px; font-size: 1.3rem; }
+.image-modal { gap: 10px; }
+.image-modal p { margin: -6px 0 0; }
+.image-modal-preview { height: 180px; border-radius: 14px; }
+.image-options { display: grid; gap: 8px; }
+.image-option {
+  display: flex; align-items: center; gap: 12px; text-align: right; padding: 12px 14px; border-radius: 14px;
+  border: 1.5px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; font: inherit;
+}
+.image-option:hover:not(:disabled):not(.disabled) { border-color: var(--primary); background: var(--surface-2); }
+.image-option:disabled, .image-option.disabled { opacity: 0.55; cursor: default; }
+.image-option span:last-child { display: grid; }
+.image-option small { color: var(--muted); }
+.image-option-icon { font-size: 1.5rem; flex: none; }
+
 /* match */
 .match-info { padding: 0 16px 16px; display: grid; gap: 8px; }
 .match-bar { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }

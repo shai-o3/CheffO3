@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { totalTime } from '../api.js';
+import RecipeImageButton from './RecipeImageButton.jsx';
 
 export function RecipeCover({ recipe, className = '', generating = false }) {
   if (recipe.image) return <div className={`cover ${className}`} style={{ backgroundImage: `url(${recipe.image})` }} />;
@@ -11,7 +12,7 @@ export function RecipeCover({ recipe, className = '', generating = false }) {
   );
 }
 
-export default function RecipeCard({ recipe, onFavorite, extra, generating = false }) {
+export default function RecipeCard({ recipe, onFavorite, onImageChange, extra, generating = false }) {
   const t = totalTime(recipe);
   return (
     <article className="card recipe-card">
@@ -29,6 +30,7 @@ export default function RecipeCard({ recipe, onFavorite, extra, generating = fal
           </div>
         </div>
       </Link>
+      {onImageChange && <RecipeImageButton recipe={recipe} onUpdated={onImageChange} className="on-card" />}
       {extra}
       {onFavorite && (
         <button

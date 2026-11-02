@@ -96,7 +96,12 @@ export default function Home() {
         </div>
       ) : (
         <div className="grid">
-          {recipes.map((r) => <RecipeCard key={r.id} recipe={r} onFavorite={toggleFav} generating={generatingId === r.id} />)}
+          {recipes.map((r) => (
+            <RecipeCard
+              key={r.id} recipe={r} onFavorite={toggleFav} generating={generatingId === r.id}
+              onImageChange={(u) => setRecipes((list) => list.map((x) => (x.id === u.id ? { ...x, image: u.image } : x)))}
+            />
+          ))}
         </div>
       )}
     </>

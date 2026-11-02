@@ -100,6 +100,7 @@ export default function WhatCanICook() {
             <RecipeCard
               key={m.recipe.id}
               recipe={m.recipe}
+              onImageChange={(u) => setMatches((list) => list.map((x) => (x.recipe.id === u.id ? { ...x, recipe: { ...x.recipe, image: u.image } } : x)))}
               extra={(
                 <div className="match-info">
                   <div className="match-bar"><div style={{ width: `${Math.round(m.score * 100)}%` }} /></div>
