@@ -1,21 +1,22 @@
 import { Link } from 'react-router-dom';
 import { totalTime } from '../api.js';
 
-export function RecipeCover({ recipe, className = '' }) {
+export function RecipeCover({ recipe, className = '', generating = false }) {
   if (recipe.image) return <div className={`cover ${className}`} style={{ backgroundImage: `url(${recipe.image})` }} />;
   return (
-    <div className={`cover cover-emoji ${className}`} data-cat={recipe.category}>
+    <div className={`cover cover-emoji ${generating ? 'generating' : ''} ${className}`} data-cat={recipe.category}>
       <span>{recipe.emoji || '🍽️'}</span>
+      {generating && <small className="cover-status">🎨 מכין תמונה של המנה...</small>}
     </div>
   );
 }
 
-export default function RecipeCard({ recipe, onFavorite, extra }) {
+export default function RecipeCard({ recipe, onFavorite, extra, generating = false }) {
   const t = totalTime(recipe);
   return (
     <article className="card recipe-card">
       <Link to={`/recipes/${recipe.id}`} className="recipe-card-link">
-        <RecipeCover recipe={recipe} />
+        <RecipeCover recipe={recipe} generating={generating} />
         <div className="recipe-card-body">
           <div className="recipe-card-cat">{recipe.category}</div>
           <h3>{recipe.title}</h3>

@@ -150,7 +150,7 @@ export async function handle(ctx, method, path, params, body) {
 
   if (route('GET', /^\/meta$/)) {
     return {
-      aiEnabled: !!ctx.ai, whatsappBot: !!ctx.whatsappBot, demo: !!ctx.demo,
+      aiEnabled: !!ctx.ai, imageGen: !!ctx.generateImage, whatsappBot: !!ctx.whatsappBot, demo: !!ctx.demo,
       ingredientCategories: INGREDIENT_CATEGORIES, recipeCategories: RECIPE_CATEGORIES, difficulties: DIFFICULTIES,
       staples: STAPLES, tags: allTags(state),
       knownIngredients: [...new Set(state.recipes.flatMap((r) => r.ingredients.map((i) => i.name)))],
@@ -183,6 +183,22 @@ export async function handle(ctx, method, path, params, body) {
     if (!file || typeof file === 'string') throw httpError(400, 'יש להעלות קובץ תמונה');
     r.image = await ctx.saveUpload(file);
     r.updated_at = now();
+    return mutate(r);
+  }
+  // AI photo of the dish (Gemini). Cached by recipe content, so identical recipes share one image.
+  if (route('POST', /^\/recipes\/(\d+)\/generate-image$/)) {
+    if (!ctx.generateImage) throw httpError(400, 'יצירת תמונות לא מוגדרת: יש להגדיר GEMINI_API_KEY בשרת.');
+    const r = getRecipe(state, m[1]);
+    const key = ctx.dishKey(r);
+    let url = body?.fresh ? null : (await ctx.images?.get(key))?.url;
+    if (!url) {
+      const img = await ctx.generateImage(r);
+      const bytes = Uint8Array.from(atob(img.data), (c) => c.charCodeAt(0));
+      url = await ctx.saveUpload(new File([bytes], 'dish', { type: img.mimeType }));
+      await ctx.images?.set(key, { url, source: 'gemini', at: Date.now() });
+    }
+    r.image = url;
+    r.image_generated = true;
     return mutate(r);
   }
   if (route('GET', /^\/recipes\/(\d+)\/whatsapp$/)) {

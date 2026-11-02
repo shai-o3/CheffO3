@@ -6,6 +6,7 @@ import IngredientImage from '../components/IngredientImage.jsx';
 import { RecipeCover } from '../components/RecipeCard.jsx';
 import CookMode from '../components/CookMode.jsx';
 import AskChef from '../components/AskChef.jsx';
+import { ensureDishImage } from '../dishImages.js';
 
 const ADAPT_PRESETS = ['טבעוני', 'ללא גלוטן', 'דל פחמימות', 'פרווה (ללא חלב)', 'בריא יותר', 'גרסה מהירה עד 20 דקות'];
 
@@ -21,6 +22,23 @@ export default function RecipePage() {
   const [cookMode, setCookMode] = useState(false);
   const [adapting, setAdapting] = useState(false);
   const [waText, setWaText] = useState('');
+  const [generating, setGenerating] = useState(false);
+
+  // Create a photo of the dish when the recipe has none.
+  const makeImage = async (fresh = false) => {
+    setGenerating(true);
+    try {
+      const updated = await ensureDishImage(recipe, { fresh });
+      if (updated) setRecipe((r) => (r && r.id === updated.id ? { ...r, image: updated.image } : r));
+    } catch (e) {
+      notify(e.message, 'error');
+    } finally {
+      setGenerating(false);
+    }
+  };
+  useEffect(() => {
+    if (recipe && !recipe.image && meta?.imageGen) makeImage();
+  }, [recipe?.id, meta?.imageGen]); // eslint-disable-line react-hooks/exhaustive-deps
   const fileRef = useRef();
 
   useEffect(() => {
@@ -103,7 +121,7 @@ export default function RecipePage() {
   return (
     <article className="recipe-page">
       <div className="recipe-hero">
-        <RecipeCover recipe={recipe} className="recipe-hero-cover" />
+        <RecipeCover recipe={recipe} className="recipe-hero-cover" generating={generating} />
         <div className="recipe-hero-info">
           <div className="recipe-card-cat">{recipe.category}{recipe.cuisine ? ` · ${recipe.cuisine}` : ''}</div>
           <h1>{recipe.emoji} {recipe.title}</h1>
@@ -123,7 +141,10 @@ export default function RecipePage() {
             <a className="btn btn-wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer">🟢 שליחה בוואטסאפ</a>
             <button type="button" className="btn btn-icon" onClick={onFavorite} title="מועדף">{recipe.favorite ? '❤️' : '🤍'}</button>
             <Link to={`/recipes/${recipe.id}/edit`} className="btn btn-icon" title="עריכה">✏️</Link>
-            <button type="button" className="btn btn-icon" onClick={() => fileRef.current.click()} title="תמונה למתכון">📷</button>
+            <button type="button" className="btn btn-icon" onClick={() => fileRef.current.click()} title="העלאת תמונה למתכון">📷</button>
+            {meta?.imageGen && (
+              <button type="button" className="btn btn-icon" disabled={generating} onClick={() => makeImage(true)} title="יצירת תמונה חדשה עם AI">🎨</button>
+            )}
             <button type="button" className="btn btn-icon print-btn" onClick={() => window.print()} title="הדפסה">🖨️</button>
             <button type="button" className="btn btn-icon danger" onClick={onDelete} title="מחיקה">🗑️</button>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => e.target.files[0] && onImage(e.target.files[0])} />

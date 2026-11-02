@@ -9,6 +9,7 @@
 //
 // Environment variables (Netlify UI → Project configuration → Environment variables):
 //   ANTHROPIC_API_KEY   enables the AI features
+//   GEMINI_API_KEY      enables AI dish photos (Google AI Studio)
 //   GOOGLE_CLIENT_ID    enables "Sign in with Google" (see README)
 //   ALLOWED_EMAILS      optional: who may register, e.g. "@example.com,friend@gmail.com"
 //   SESSION_SECRET      optional: session signing key (generated automatically otherwise)
@@ -18,6 +19,7 @@ import crypto from 'node:crypto';
 import { getStore } from '@netlify/blobs';
 import { handle, seedState, emptyState, createRecipe, listShopping, httpError } from '../../server/src/core.js';
 import { lookupImage } from '../../server/src/imageProviders.js';
+import { imageGenEnabled, generateDishImage, dishKey } from '../../server/src/imageGen.js';
 import { cleanWhatsAppText, shoppingListToWhatsApp } from '../../server/src/whatsappFormat.js';
 import {
   whatsappConfigured, verifyWebhook, signatureValid, incomingMessages, sendText, downloadMedia, HELP,
@@ -54,6 +56,8 @@ function makeCtx(s) {
     whatsappBot: whatsappConfigured(),
     publicUrl: publicUrl(),
     lookupImage,
+    generateImage: imageGenEnabled() ? generateDishImage : null,
+    dishKey,
     images: {
       get: (k) => s.images.get(encodeURIComponent(k), { type: 'json' }),
       set: (k, v) => (v ? s.images.setJSON(encodeURIComponent(k), v) : s.images.delete(encodeURIComponent(k))),

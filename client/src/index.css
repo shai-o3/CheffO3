@@ -192,6 +192,14 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .cover-emoji[data-cat='ארוחת בוקר'] { background: var(--cover-yellow); }
 .cover-emoji[data-cat='מרקים'], .cover-emoji[data-cat='רטבים וממרחים'] { background: var(--cover-tan); }
 
+/* generating dish photo */
+.cover-emoji { position: relative; }
+.cover-emoji.generating span { animation: pulse 1.4s infinite; }
+.cover-status {
+  position: absolute; inset: auto 0 10px; text-align: center; font-size: 0.82rem; font-weight: 600; color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) { .cover-emoji.generating span { animation: none; } }
+
 /* match */
 .match-info { padding: 0 16px 16px; display: grid; gap: 8px; }
 .match-bar { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }

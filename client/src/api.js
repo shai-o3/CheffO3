@@ -53,6 +53,7 @@ export const api = {
     f.append('image', await compressImage(file));
     return request('POST', `/recipes/${id}/image`, null, { form: f });
   },
+  generateImage: (id, fresh = false) => request('POST', `/recipes/${id}/generate-image`, { fresh }),
   recipeWhatsApp: (id, servings) => request('GET', `/recipes/${id}/whatsapp${qs({ servings })}`),
 
   extract: async ({ text, files, keepImage }) => {

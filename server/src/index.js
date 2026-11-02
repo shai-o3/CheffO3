@@ -10,6 +10,7 @@ import * as recipes from './recipes.js';
 import * as shopping from './shopping.js';
 import { getIngredientImage, setManualImage, resetImage } from './images.js';
 import { aiEnabled, extractRecipe, suggestRecipes, adaptRecipe, askChef } from './ai.js';
+import { imageGenEnabled, generateDishImage } from './imageGen.js';
 import { INGREDIENT_CATEGORIES, RECIPE_CATEGORIES, DIFFICULTIES, STAPLES } from './hebrew.js';
 import * as wa from './whatsapp.js';
 import { seedIfEmpty } from './seed.js';
@@ -46,7 +47,7 @@ export function createApp() {
   api.get('/session', (_req, res) => res.json({ authRequired: false }));
 
   api.get('/meta', (_req, res) => res.json({
-    aiEnabled: aiEnabled(), whatsappBot: wa.whatsappConfigured(),
+    aiEnabled: aiEnabled(), imageGen: imageGenEnabled(), whatsappBot: wa.whatsappConfigured(),
     ingredientCategories: INGREDIENT_CATEGORIES, recipeCategories: RECIPE_CATEGORIES, difficulties: DIFFICULTIES,
     staples: STAPLES, tags: recipes.allTags(), knownIngredients: recipes.knownIngredients(),
   }));
@@ -77,6 +78,13 @@ export function createApp() {
     if (!r) throw notFound();
     res.json(r);
   });
+  api.post('/recipes/:id/generate-image', wrap(async (req, res) => {
+    const r = recipes.getRecipe(Number(req.params.id));
+    if (!r) throw notFound();
+    const img = await generateDishImage(r);
+    const image = saveUpload({ mimetype: img.mimeType, buffer: Buffer.from(img.data, 'base64') });
+    res.json(recipes.updateRecipe(r.id, { image }));
+  }));
   api.get('/recipes/:id/whatsapp', (req, res) => {
     const r = recipes.getRecipe(Number(req.params.id));
     if (!r) throw notFound();

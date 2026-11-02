@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useApp } from '../App.jsx';
 import RecipeCard from '../components/RecipeCard.jsx';
+import { ensureDishImage } from '../dishImages.js';
 
 export default function Home() {
   const { meta } = useApp();
@@ -18,6 +19,23 @@ export default function Home() {
     }, 200);
     return () => clearTimeout(t);
   }, [q, category, tag, favorite]);
+
+  // Fill in missing dish photos, one at a time.
+  const [generatingId, setGeneratingId] = useState(null);
+  useEffect(() => {
+    if (!meta?.imageGen || !recipes) return undefined;
+    let cancelled = false;
+    (async () => {
+      for (const r of recipes.filter((x) => !x.image)) {
+        if (cancelled) break;
+        setGeneratingId(r.id);
+        const updated = await ensureDishImage(r).catch(() => null);
+        if (updated && !cancelled) setRecipes((list) => list.map((x) => (x.id === r.id ? { ...x, image: updated.image } : x)));
+      }
+      if (!cancelled) setGeneratingId(null);
+    })();
+    return () => { cancelled = true; };
+  }, [meta?.imageGen, recipes?.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleFav = async (r) => {
     const updated = await api.setFavorite(r.id, !r.favorite);
@@ -78,7 +96,7 @@ export default function Home() {
         </div>
       ) : (
         <div className="grid">
-          {recipes.map((r) => <RecipeCard key={r.id} recipe={r} onFavorite={toggleFav} />)}
+          {recipes.map((r) => <RecipeCard key={r.id} recipe={r} onFavorite={toggleFav} generating={generatingId === r.id} />)}
         </div>
       )}
     </>
