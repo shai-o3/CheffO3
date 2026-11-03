@@ -20,8 +20,25 @@ function CardTags({ tags = [] }) {
   return <div className="card-tags">{shown.map((t) => <span key={t} className={`card-tag t-${CARD_TAGS.indexOf(t)}`}>{t}</span>)}</div>;
 }
 
-export default function RecipeCard({ recipe, onFavorite, onImageChange, extra, generating = false }) {
+export default function RecipeCard({ recipe, onFavorite, onImageChange, extra, generating = false, compact = false }) {
   const t = totalTime(recipe);
+  if (compact) {
+    // Home grid: picture and name only.
+    return (
+      <article className="recipe-tile">
+        <Link to={`/recipes/${recipe.id}`} className="recipe-tile-link">
+          <RecipeCover recipe={recipe} generating={generating} className="recipe-tile-cover" />
+          <h3>{recipe.title}</h3>
+        </Link>
+        {onImageChange && <RecipeImageButton recipe={recipe} onUpdated={onImageChange} className="on-tile" />}
+        {onFavorite && (
+          <button type="button" className={`fav-btn on-tile ${recipe.favorite ? 'on' : ''}`} onClick={() => onFavorite(recipe)} aria-label={recipe.favorite ? 'הסרה מהמועדפים' : 'הוספה למועדפים'}>
+            {recipe.favorite ? '❤️' : '🤍'}
+          </button>
+        )}
+      </article>
+    );
+  }
   return (
     <article className="card recipe-card">
       <Link to={`/recipes/${recipe.id}`} className="recipe-card-link">

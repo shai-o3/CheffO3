@@ -7,6 +7,7 @@ import AddRecipe from './pages/AddRecipe.jsx';
 import EditRecipe from './pages/EditRecipe.jsx';
 import WhatCanICook from './pages/WhatCanICook.jsx';
 import ShoppingList from './pages/ShoppingList.jsx';
+import About from './pages/About.jsx';
 import Login from './components/Login.jsx';
 import UserMenu from './components/UserMenu.jsx';
 
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="/add" element={<AddRecipe />} />
           <Route path="/cook" element={<WhatCanICook />} />
           <Route path="/shopping" element={<ShoppingList />} />
+          <Route path="/about" element={<About />} />
           <Route path="*" element={<div className="empty">העמוד לא נמצא 🤷</div>} />
         </Routes>
       </main>

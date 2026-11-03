@@ -42,51 +42,61 @@ export default function Home() {
     setRecipes((list) => list.map((x) => (x.id === r.id ? { ...x, favorite: updated.favorite } : x)));
   };
 
-  return (
-    <>
-      <section className="hero">
-        <div>
-          <h1>מה נבשל היום? 🍲</h1>
-          <p>כל המתכונים שלך במקום אחד, מסודרים ואחידים. מדביקים טקסט, הודעת וואטסאפ או צילום מסך – והבינה המלאכותית עושה את השאר.</p>
-          <div className="hero-actions">
-            <Link to="/add" className="btn btn-primary">➕ הוספת מתכון</Link>
-            <Link to="/cook" className="btn">🧺 מה אפשר להכין ממה שיש?</Link>
-          </div>
-        </div>
-      </section>
+  const [filterOpen, setFilterOpen] = useState(false);
 
-      <div className="search-bar">
-        <input
-          type="search"
-          placeholder="🔍 חיפוש לפי שם, מצרך או תגית..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-        />
-        <button type="button" className={`chip ${favorite ? 'active' : ''}`} onClick={() => setFavorite((f) => !f)}>
-          ❤️ מועדפים
+  return (
+    <div className="home">
+      <input
+        type="search"
+        className="home-search"
+        placeholder="🔍 חיפוש מתכון, מצרך או תגית..."
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        aria-label="חיפוש מתכונים"
+      />
+
+      <div className="home-actions">
+        <button type="button" className={`home-btn ${filterOpen || tags.length ? 'active' : ''}`} onClick={() => setFilterOpen((o) => !o)} aria-expanded={filterOpen}>
+          <span className="home-btn-icon">🏷️</span>
+          <span>סינון{tags.length ? ` (${tags.length})` : ''}</span>
         </button>
+        <button type="button" className={`home-btn ${favorite ? 'active' : ''}`} onClick={() => setFavorite((f) => !f)} aria-pressed={favorite}>
+          <span className="home-btn-icon">❤️</span>
+          <span>מועדפים</span>
+        </button>
+        <Link to="/add" className="home-btn primary">
+          <span className="home-btn-icon">➕</span>
+          <span>הוספה</span>
+        </Link>
       </div>
 
-      <TagFilter meta={meta} selected={tags} onChange={setTags} />
+      {(filterOpen || tags.length > 0) && <TagFilter meta={meta} selected={tags} onChange={setTags} open={filterOpen} />}
+
+      <Link to="/cook" className="home-btn home-btn-wide">
+        <span className="home-btn-icon">🧺</span>
+        <span>מה אפשר להכין ממה שיש?</span>
+      </Link>
 
       {recipes === null ? (
         <div className="loading">טוען מתכונים...</div>
       ) : recipes.length === 0 ? (
         <div className="empty">
           <div className="empty-icon">🥄</div>
-          <p>לא נמצאו מתכונים.</p>
-          <Link to="/add" className="btn btn-primary">הוסיפו את המתכון הראשון</Link>
+          <p>{q || tags.length || favorite ? 'לא נמצאו מתכונים שמתאימים לחיפוש.' : 'עוד אין מתכונים.'}</p>
+          <Link to="/add" className="btn btn-primary">➕ הוספת מתכון</Link>
         </div>
       ) : (
-        <div className="grid">
+        <div className="recipe-grid">
           {recipes.map((r) => (
             <RecipeCard
-              key={r.id} recipe={r} onFavorite={toggleFav} generating={generatingId === r.id}
+              key={r.id} recipe={r} compact onFavorite={toggleFav} generating={generatingId === r.id}
               onImageChange={(u) => setRecipes((list) => list.map((x) => (x.id === u.id ? { ...x, image: u.image } : x)))}
             />
           ))}
         </div>
       )}
-    </>
+
+      <p className="home-footer"><Link to="/about">ℹ️ אודות CheffO3</Link></p>
+    </div>
   );
 }

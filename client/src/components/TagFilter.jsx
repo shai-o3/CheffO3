@@ -1,11 +1,8 @@
-import { useState } from 'react';
-
 /**
  * Tag filter grouped by the standard vocabulary (course, kashrut, diet, main ingredient,
  * style) plus the user's other tags. Selected tags combine (recipe must have all).
  */
-export default function TagFilter({ meta, selected, onChange }) {
-  const [open, setOpen] = useState(() => typeof window !== 'undefined' && window.innerWidth > 720);
+export default function TagFilter({ meta, selected, onChange, open = true }) {
   const counts = new Map((meta?.tags || []).map((t) => [t.name, t.count]));
   const groups = (meta?.tagGroups || [])
     .map((g) => ({ name: g.name, tags: g.tags.filter((t) => counts.has(t)) }))
@@ -18,15 +15,14 @@ export default function TagFilter({ meta, selected, onChange }) {
 
   return (
     <div className="tag-filter">
+      {selected.length > 0 && (
       <div className="tag-filter-bar">
-        <button type="button" className={`chip ${open ? 'active' : ''}`} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-          🏷️ סינון לפי תגיות{selected.length ? ` (${selected.length})` : ''}
-        </button>
         {selected.map((t) => (
           <button type="button" key={t} className="chip chip-sm active" onClick={() => toggle(t)}>{t} ✕</button>
         ))}
-        {selected.length > 0 && <button type="button" className="chip chip-sm" onClick={() => onChange([])}>ניקוי</button>}
+        <button type="button" className="chip chip-sm" onClick={() => onChange([])}>ניקוי</button>
       </div>
+      )}
       {open && (
         <div className="tag-groups">
           {groups.map((g) => (

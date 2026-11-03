@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Link } from 'react-router-dom';
 import { auth } from '../api.js';
 import GoogleButton from './GoogleButton.jsx';
 
@@ -47,6 +48,7 @@ export default function UserMenu({ user, onUser, notify, googleClientId }) {
             <small dir="ltr">{user.email}</small>
           </div>
           <button type="button" onClick={() => { setSettings(true); setOpen(false); }}>⚙️ הגדרות</button>
+          <Link to="/about" onClick={() => setOpen(false)}>ℹ️ אודות</Link>
           <button type="button" onClick={logout}>🚪 התנתקות</button>
         </div>
       )}
