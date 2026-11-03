@@ -4,6 +4,7 @@ import { api, formatQty, shufersalLink, whatsappLink } from '../api.js';
 import { useApp } from '../App.jsx';
 import IngredientImage from '../components/IngredientImage.jsx';
 import { WhatsAppIcon, CopyIcon, PrintIcon } from '../components/Icons.jsx';
+import { shufersalQuickList, SHUFERSAL_QUICK_ORDER_URL } from '../shufersalList.js';
 
 export default function ShoppingList() {
   const { notify, refreshCart } = useApp();
@@ -43,6 +44,16 @@ export default function ShoppingList() {
     refreshCart();
   };
   const del = async (id) => { await api.deleteShopping(id); load(); };
+  const [showQuick, setShowQuick] = useState(false);
+  const quickList = useMemo(() => shufersalQuickList(items || []), [items]);
+
+  // Copy the list in Shufersal's quick-order format and let the link open Shufersal.
+  const toShufersal = () => {
+    navigator.clipboard.writeText(quickList)
+      .then(() => notify('📋 הרשימה הועתקה. בשופרסל: הזמנה מהירה ← הדבקה ← "צרו לי רשימה"'))
+      .catch(() => { setShowQuick(true); notify('לא ניתן להעתיק אוטומטית – העתיקו את הרשימה מהתיבה', 'warn'); });
+  };
+
   const copy = () => {
     navigator.clipboard.writeText(waText.replace(/\*/g, ''))
       .then(() => notify('📋 הרשימה הועתקה'))
@@ -63,6 +74,22 @@ export default function ShoppingList() {
           <button type="button" className="icon-btn print-btn" onClick={() => window.print()} title="הדפסה" aria-label="הדפסה"><PrintIcon /></button>
           <button type="button" className="icon-btn" onClick={copy} title="העתקת הרשימה" aria-label="העתקת הרשימה"><CopyIcon /></button>
         </div>
+      )}
+      {quickList && (
+        <section className="shufersal-box">
+          <a className="btn shufersal-btn" href={SHUFERSAL_QUICK_ORDER_URL} target="_blank" rel="noreferrer" onClick={toShufersal}>
+            🛍️ העברה לשופרסל – הזמנה מהירה
+          </a>
+          <ol className="shufersal-steps">
+            <li>הכפתור מעתיק את הרשימה ופותח את שופרסל (באפליקציה, אם היא מותקנת).</li>
+            <li>בתפריט של שופרסל בוחרים <b>הזמנה מהירה</b>.</li>
+            <li>לוחצים לחיצה ארוכה בתיבה ← <b>הדבקה</b> ← <b>צרו לי רשימה</b>, ומשלמים בשופרסל.</li>
+          </ol>
+          <button type="button" className="link-btn" onClick={() => setShowQuick((v) => !v)}>
+            {showQuick ? 'הסתרת הרשימה' : `הצגת הרשימה שתועתק (${quickList.split('\n').length} מוצרים)`}
+          </button>
+          {showQuick && <textarea className="shufersal-text" readOnly rows={Math.min(12, quickList.split('\n').length)} value={quickList} onFocus={(e) => e.target.select()} />}
+        </section>
       )}
 
       <form className="card row add-item" onSubmit={add}>
