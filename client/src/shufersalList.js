@@ -6,7 +6,7 @@ const SHUFERSAL_WEB_URL = 'https://www.shufersal.co.il/online/he/';
 const ANDROID_PACKAGE = 'com.Shufersal'; // Google Play id of the Shufersal app
 // iPhone: the Shufersal app's custom URL scheme (confirmed on a real iPhone: Safari opens the app).
 // Shufersal web links don't open the app, so the scheme is used instead.
-const IOS_APP_URL = 'shufersalapp://';
+const IOS_APP_URL = 'shufersal://';
 
 const isAndroid = () => /Android/i.test(navigator.userAgent);
 const isIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent)
