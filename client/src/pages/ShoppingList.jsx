@@ -4,7 +4,7 @@ import { api, formatQty, shufersalLink, whatsappLink } from '../api.js';
 import { useApp } from '../App.jsx';
 import IngredientImage from '../components/IngredientImage.jsx';
 import { WhatsAppIcon, CopyIcon, PrintIcon } from '../components/Icons.jsx';
-import { shufersalQuickList, SHUFERSAL_QUICK_ORDER_URL } from '../shufersalList.js';
+import { shufersalQuickList, shufersalTarget } from '../shufersalList.js';
 
 export default function ShoppingList() {
   const { notify, refreshCart } = useApp();
@@ -48,9 +48,14 @@ export default function ShoppingList() {
   const quickList = useMemo(() => shufersalQuickList(items || []), [items]);
 
   // Copy the list in Shufersal's quick-order format and let the link open Shufersal.
+  const target = useMemo(() => shufersalTarget(), []);
+  const [copied, setCopied] = useState(false);
   const toShufersal = () => {
     navigator.clipboard.writeText(quickList)
-      .then(() => notify('📋 הרשימה הועתקה. בשופרסל: הזמנה מהירה ← הדבקה ← "צרו לי רשימה"'))
+      .then(() => {
+        setCopied(true);
+        notify(target.href ? '📋 הרשימה הועתקה. בשופרסל: הזמנה מהירה ← הדבקה' : '📋 הרשימה הועתקה – עכשיו פתחו את אפליקציית שופרסל');
+      })
       .catch(() => { setShowQuick(true); notify('לא ניתן להעתיק אוטומטית – העתיקו את הרשימה מהתיבה', 'warn'); });
   };
 
@@ -77,11 +82,26 @@ export default function ShoppingList() {
       )}
       {quickList && (
         <section className="shufersal-box">
-          <a className="btn shufersal-btn" href={SHUFERSAL_QUICK_ORDER_URL} target="_blank" rel="noreferrer" onClick={toShufersal}>
-            🛍️ העברה לשופרסל – הזמנה מהירה
-          </a>
+          {target.href ? (
+            <a
+              className="btn shufersal-btn" href={target.href} onClick={toShufersal}
+              {...(target.kind === 'web' ? { target: '_blank', rel: 'noreferrer' } : {})}
+            >
+              🛍️ העברה לשופרסל – הזמנה מהירה
+            </a>
+          ) : (
+            <button type="button" className="btn shufersal-btn" onClick={toShufersal}>
+              {copied ? '✓ הרשימה הועתקה – העתקה שוב' : '🛍️ העתקת הרשימה לשופרסל'}
+            </button>
+          )}
+          {copied && !target.href && (
+            <div className="shufersal-next">
+              <b>עכשיו פתחו את אפליקציית שופרסל</b> במסך הבית של הטלפון.
+              <a href={target.web} target="_blank" rel="noreferrer">או פתחו את אתר שופרסל</a>
+            </div>
+          )}
           <ol className="shufersal-steps">
-            <li>הכפתור מעתיק את הרשימה ופותח את שופרסל (באפליקציה, אם היא מותקנת).</li>
+            <li>{target.href ? <>הכפתור מעתיק את הרשימה ופותח את {target.kind === 'android' ? 'אפליקציית שופרסל' : 'אתר שופרסל'}.</> : <>הכפתור מעתיק את הרשימה. אחר כך פותחים את אפליקציית שופרסל.</>}</li>
             <li>בתפריט של שופרסל בוחרים <b>הזמנה מהירה</b>.</li>
             <li>לוחצים לחיצה ארוכה בתיבה ← <b>הדבקה</b> ← <b>צרו לי רשימה</b>, ומשלמים בשופרסל.</li>
           </ol>
