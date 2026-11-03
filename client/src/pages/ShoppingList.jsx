@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { api, formatQty, shufersalLink, whatsappLink } from '../api.js';
 import { useApp } from '../App.jsx';
@@ -44,19 +45,15 @@ export default function ShoppingList() {
     refreshCart();
   };
   const del = async (id) => { await api.deleteShopping(id); load(); };
-  const [showQuick, setShowQuick] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const quickList = useMemo(() => shufersalQuickList(items || []), [items]);
 
   // Copy the list in Shufersal's quick-order format and let the link open Shufersal.
   const target = useMemo(() => shufersalTarget(), []);
-  const [copied, setCopied] = useState(false);
   const toShufersal = () => {
     navigator.clipboard.writeText(quickList)
-      .then(() => {
-        setCopied(true);
-        notify(target.href ? '📋 הרשימה הועתקה. בשופרסל: הזמנה מהירה ← הדבקה' : '📋 הרשימה הועתקה – עכשיו פתחו את אפליקציית שופרסל');
-      })
-      .catch(() => { setShowQuick(true); notify('לא ניתן להעתיק אוטומטית – העתיקו את הרשימה מהתיבה', 'warn'); });
+      .then(() => notify(target.href ? '📋 הרשימה הועתקה. בשופרסל: הזמנה מהירה ← הדבקה' : '📋 הרשימה הועתקה – עכשיו פתחו את אפליקציית שופרסל'))
+      .catch(() => { setShowHelp(true); notify('לא ניתן להעתיק אוטומטית – העתיקו את הרשימה מתוך ההסבר', 'warn'); });
   };
 
   const copy = () => {
@@ -81,35 +78,42 @@ export default function ShoppingList() {
         </div>
       )}
       {quickList && (
-        <section className="shufersal-box">
+        <div className="shufersal-row">
           {target.href ? (
             <a
               className="btn shufersal-btn" href={target.href} onClick={toShufersal}
               {...(target.kind === 'web' ? { target: '_blank', rel: 'noreferrer' } : {})}
             >
-              🛍️ העברה לשופרסל – הזמנה מהירה
+              🛍️ העברה לשופרסל
             </a>
           ) : (
-            <button type="button" className="btn shufersal-btn" onClick={toShufersal}>
-              {copied ? '✓ הרשימה הועתקה – העתקה שוב' : '🛍️ העתקת הרשימה לשופרסל'}
-            </button>
+            <button type="button" className="btn shufersal-btn" onClick={toShufersal}>🛍️ העתקת הרשימה לשופרסל</button>
           )}
-          {copied && !target.href && (
-            <div className="shufersal-next">
-              <b>עכשיו פתחו את אפליקציית שופרסל</b> במסך הבית של הטלפון.
-              <a href={target.web} target="_blank" rel="noreferrer">או פתחו את אתר שופרסל</a>
+          <button type="button" className="info-btn" onClick={() => setShowHelp(true)} aria-label="הסבר על ההעברה לשופרסל" title="איך זה עובד?">!</button>
+        </div>
+      )}
+      {showHelp && createPortal(
+        <div className="modal-backdrop" onClick={() => setShowHelp(false)}>
+          <div className="card modal" role="dialog" aria-label="העברה לשופרסל" onClick={(e) => e.stopPropagation()}>
+            <h2>🛍️ העברה לשופרסל</h2>
+            <ol className="shufersal-steps">
+              <li>הכפתור מעתיק את רשימת הקניות ופותח את {target.kind === 'web' ? 'אתר' : 'אפליקציית'} שופרסל.</li>
+              <li>בתפריט של שופרסל בוחרים <b>הזמנה מהירה</b>.</li>
+              <li>לוחצים לחיצה ארוכה בתיבה ← <b>הדבקה</b> ← <b>צרו לי רשימה</b>.</li>
+              <li>בודקים את המוצרים בעגלה ומשלמים בשופרסל.</li>
+            </ol>
+            <p className="muted">מועתקים רק המוצרים שעוד לא סומנו, שם אחד בכל שורה. מים לא נכללים.</p>
+            <details>
+              <summary>הרשימה שתועתק ({quickList.split('\n').length} מוצרים)</summary>
+              <textarea className="shufersal-text" readOnly rows={Math.min(10, quickList.split('\n').length)} value={quickList} onFocus={(e) => e.target.select()} />
+            </details>
+            {target.web && <a href={target.web} target="_blank" rel="noreferrer">פתיחה באתר שופרסל במקום באפליקציה</a>}
+            <div className="row modal-actions">
+              <button type="button" className="btn" onClick={() => setShowHelp(false)}>סגירה</button>
             </div>
-          )}
-          <ol className="shufersal-steps">
-            <li>{target.href ? <>הכפתור מעתיק את הרשימה ופותח את {target.kind === 'android' ? 'אפליקציית שופרסל' : 'אתר שופרסל'}.</> : <>הכפתור מעתיק את הרשימה. אחר כך פותחים את אפליקציית שופרסל.</>}</li>
-            <li>בתפריט של שופרסל בוחרים <b>הזמנה מהירה</b>.</li>
-            <li>לוחצים לחיצה ארוכה בתיבה ← <b>הדבקה</b> ← <b>צרו לי רשימה</b>, ומשלמים בשופרסל.</li>
-          </ol>
-          <button type="button" className="link-btn" onClick={() => setShowQuick((v) => !v)}>
-            {showQuick ? 'הסתרת הרשימה' : `הצגת הרשימה שתועתק (${quickList.split('\n').length} מוצרים)`}
-          </button>
-          {showQuick && <textarea className="shufersal-text" readOnly rows={Math.min(12, quickList.split('\n').length)} value={quickList} onFocus={(e) => e.target.select()} />}
-        </section>
+          </div>
+        </div>,
+        document.body,
       )}
 
       <form className="card row add-item" onSubmit={add}>
