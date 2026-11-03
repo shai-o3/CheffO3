@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { api, formatQty, shufersalLink, whatsappLink } from '../api.js';
 import { useApp } from '../App.jsx';
 import IngredientImage from '../components/IngredientImage.jsx';
+import { WhatsAppIcon, CopyIcon, PrintIcon } from '../components/Icons.jsx';
 
 export default function ShoppingList() {
   const { notify, refreshCart } = useApp();
@@ -55,12 +56,14 @@ export default function ShoppingList() {
     <>
       <div className="page-head">
         <h1>🛒 רשימת קניות</h1>
-        <div className="actions">
-          {items.length > 0 && <a className="btn btn-wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer">🟢 שליחה בוואטסאפ</a>}
-          <button type="button" className="btn" onClick={copy} disabled={!items.length}>📋 העתקה</button>
-          <button type="button" className="btn print-btn" onClick={() => window.print()} disabled={!items.length}>🖨️</button>
-        </div>
       </div>
+      {items.length > 0 && (
+        <div className="icon-actions shop-actions">
+          <a className="icon-btn wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer" title="שליחה בוואטסאפ" aria-label="שליחה בוואטסאפ"><WhatsAppIcon /></a>
+          <button type="button" className="icon-btn print-btn" onClick={() => window.print()} title="הדפסה" aria-label="הדפסה"><PrintIcon /></button>
+          <button type="button" className="icon-btn" onClick={copy} title="העתקת הרשימה" aria-label="העתקת הרשימה"><CopyIcon /></button>
+        </div>
+      )}
 
       <form className="card row add-item" onSubmit={add}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="הוספת מוצר..." />

@@ -235,6 +235,7 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .icon-btn.wa:hover { background: #1ebe5a; }
 .icon-btn.danger:hover { border-color: var(--danger); }
 .demo .icon-btn.print-btn { display: none; }
+.shop-actions { margin: -6px 0 14px; }
 .cook-btn { width: 100%; margin-top: 12px; padding: 14px; font-size: 1.1rem; border-radius: 16px; }
 
 /* recipe image button + dialog */
