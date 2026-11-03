@@ -222,8 +222,23 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 }
 @media (prefers-reduced-motion: reduce) { .cover-emoji.generating span { animation: none; } }
 
+/* recipe page: one time indicator, compact icon row, cook button under the image */
+.time-pill { display: inline-flex; gap: 6px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; margin: 4px 0 10px; font-size: 0.95rem; }
+.icon-actions { display: flex; flex-wrap: nowrap; gap: 8px; margin-top: 12px; }
+.icon-btn {
+  flex: 1 1 0; min-width: 0; max-width: 64px; height: 46px; display: grid; place-items: center; border-radius: 14px;
+  border: 1.5px solid var(--line); background: var(--surface); color: var(--text); font-size: 1.15rem; cursor: pointer; padding: 0;
+}
+.icon-btn:hover { background: var(--surface-2); }
+.icon-btn:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.icon-btn.wa { background: var(--wa); border-color: transparent; color: #fff; }
+.icon-btn.wa:hover { background: #1ebe5a; }
+.icon-btn.danger:hover { border-color: var(--danger); }
+.demo .icon-btn.print-btn { display: none; }
+.cook-btn { width: 100%; margin-top: 12px; padding: 14px; font-size: 1.1rem; border-radius: 16px; }
+
 /* recipe image button + dialog */
-.recipe-hero-media { position: relative; }
+.recipe-hero-photo { position: relative; }
 .image-btn {
   position: absolute; z-index: 2; width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; font-size: 1.1rem;
   background: rgba(255, 255, 255, 0.92); box-shadow: var(--shadow); display: grid; place-items: center;
@@ -538,7 +553,7 @@ body::before { content: ''; position: fixed; inset: 0 0 auto; height: env(safe-a
 }
 
 @media print {
-  .topbar, .nav, .actions, .recipe-ai, .ing-footer, .servings, .sticky-save, .fav-btn, .add-item, .page-head .actions { display: none !important; }
+  .topbar, .nav, .actions, .icon-actions, .cook-btn, .image-btn, .recipe-ai, .ing-footer, .servings, .sticky-save, .fav-btn, .add-item, .page-head .actions { display: none !important; }
   .card { box-shadow: none; border: 0; }
   .recipe-body { grid-template-columns: 1fr 1.4fr; }
   body { background: #fff; }

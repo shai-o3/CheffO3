@@ -1,13 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, formatQty, whatsappLink } from '../api.js';
+import { api, formatQty, whatsappLink, totalTime } from '../api.js';
 import { useApp } from '../App.jsx';
 import IngredientImage from '../components/IngredientImage.jsx';
 import { RecipeCover } from '../components/RecipeCard.jsx';
 import CookMode from '../components/CookMode.jsx';
 import AskChef from '../components/AskChef.jsx';
 import { ensureDishImage } from '../dishImages.js';
+import { WhatsAppIcon, CartIcon } from '../components/Icons.jsx';
 import RecipeImageButton from '../components/RecipeImageButton.jsx';
+
+const formatMinutes = (m) => {
+  if (m < 60) return `${m} דק'`;
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  const hours = h === 1 ? 'שעה' : h === 2 ? 'שעתיים' : `${h} שעות`;
+  return rest ? `${hours} ו-${rest} דק'` : hours;
+};
 
 const ADAPT_PRESETS = ['טבעוני', 'ללא גלוטן', 'דל פחמימות', 'פרווה (ללא חלב)', 'בריא יותר', 'גרסה מהירה עד 20 דקות'];
 
@@ -116,30 +125,27 @@ export default function RecipePage() {
     <article className="recipe-page">
       <div className="recipe-hero">
         <div className="recipe-hero-media">
-          <RecipeCover recipe={recipe} className="recipe-hero-cover" generating={generating} />
-          <RecipeImageButton recipe={recipe} onUpdated={(u) => setRecipe((r) => ({ ...r, image: u.image }))} className="on-hero" />
+          <div className="recipe-hero-photo">
+            <RecipeCover recipe={recipe} className="recipe-hero-cover" generating={generating} />
+            <RecipeImageButton recipe={recipe} onUpdated={(u) => setRecipe((r) => ({ ...r, image: u.image }))} className="on-hero" />
+          </div>
+          <button type="button" className="btn btn-primary cook-btn" onClick={() => setCookMode(true)}>👩‍🍳 עבור למצב בישול</button>
         </div>
         <div className="recipe-hero-info">
           <div className="recipe-card-cat">{recipe.category}{recipe.cuisine ? ` · ${recipe.cuisine}` : ''}</div>
           <h1>{recipe.emoji} {recipe.title}</h1>
           {recipe.description && <p className="lead">{recipe.description}</p>}
-          <div className="stats">
-            {recipe.prep_minutes != null && <div><b>{recipe.prep_minutes}</b><span>דק' הכנה</span></div>}
-            {recipe.cook_minutes != null && <div><b>{recipe.cook_minutes}</b><span>דק' בישול</span></div>}
-            <div><b>{recipe.ingredients.length}</b><span>מצרכים</span></div>
-            <div><b>{recipe.difficulty}</b><span>רמת קושי</span></div>
-          </div>
+          {totalTime(recipe) > 0 && <div className="time-pill">⏱️ זמן הכנה: <b>{formatMinutes(totalTime(recipe))}</b></div>}
           {recipe.tags.length > 0 && (
             <div className="chips">{recipe.tags.map((t) => <span key={t} className="chip chip-sm static">#{t}</span>)}</div>
           )}
-          <div className="actions">
-            <button type="button" className="btn btn-primary" onClick={() => setCookMode(true)}>👩‍🍳 מצב בישול</button>
-            <button type="button" className="btn" onClick={() => addToCart()}>🛒 לרשימת הקניות</button>
-            <a className="btn btn-wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer">🟢 שליחה בוואטסאפ</a>
-            <button type="button" className="btn btn-icon" onClick={onFavorite} title="מועדף">{recipe.favorite ? '❤️' : '🤍'}</button>
-            <Link to={`/recipes/${recipe.id}/edit`} className="btn btn-icon" title="עריכה">✏️</Link>
-            <button type="button" className="btn btn-icon print-btn" onClick={() => window.print()} title="הדפסה">🖨️</button>
-            <button type="button" className="btn btn-icon danger" onClick={onDelete} title="מחיקה">🗑️</button>
+          <div className="icon-actions">
+            <button type="button" className="icon-btn" onClick={() => addToCart()} title="הוספה לרשימת הקניות" aria-label="הוספה לרשימת הקניות"><CartIcon /></button>
+            <a className="icon-btn wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer" title="שליחה בוואטסאפ" aria-label="שליחה בוואטסאפ"><WhatsAppIcon /></a>
+            <button type="button" className="icon-btn" onClick={onFavorite} title={recipe.favorite ? 'הסרה מהמועדפים' : 'הוספה למועדפים'} aria-label="מועדף">{recipe.favorite ? '❤️' : '🤍'}</button>
+            <Link to={`/recipes/${recipe.id}/edit`} className="icon-btn" title="עריכה" aria-label="עריכה">✏️</Link>
+            <button type="button" className="icon-btn print-btn" onClick={() => window.print()} title="הדפסה" aria-label="הדפסה">🖨️</button>
+            <button type="button" className="icon-btn danger" onClick={onDelete} title="מחיקה" aria-label="מחיקה">🗑️</button>
           </div>
         </div>
       </div>
