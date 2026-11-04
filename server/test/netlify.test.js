@@ -163,6 +163,9 @@ test('profile: WhatsApp phone is unique per account', async () => {
   const r = await dana('PUT', '/api/me', { phone: '050-1234567' });
   assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal(r.data.phone, '972501234567');
+  const g = await dana('PUT', '/api/me', { grokEmail: ' Grok@Example.com ' });
+  assert.equal(g.data.grokEmail, 'grok@example.com');
+  assert.equal((await dana('PUT', '/api/me', { grokEmail: 'not-an-email' })).status, 400);
   assert.equal((await yossi('PUT', '/api/me', { phone: '+972 50 123 4567' })).status, 409);
   assert.equal((await dana('POST', '/api/me/password', { current: 'wrong', next: 'new-password-1' })).status, 400);
   assert.equal((await dana('POST', '/api/me/password', { current: 'secret-pass-1', next: 'new-password-1' })).status, 200);

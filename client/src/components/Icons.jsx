@@ -36,3 +36,14 @@ export function PrintIcon({ size = 22 }) {
     </svg>
   );
 }
+
+/** Grok mark: a slash through a ring (drawn simply, monochrome). */
+export function GrokIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+      <path d="M17.3 7.2A7 7 0 1 0 18.9 15" />
+      <path d="M8.5 15.5 19.5 4.5" />
+      <path d="M12.6 12.2 20 19.6" />
+    </svg>
+  );
+}

@@ -90,7 +90,7 @@ export default function App() {
   if ((session && !user) || needLogin) return <Login session={session} onLoggedIn={onLoggedIn} />;
 
   return (
-    <AppCtx.Provider value={{ meta, refreshMeta, notify, refreshCart }}>
+    <AppCtx.Provider value={{ meta, refreshMeta, notify, refreshCart, user, setUser }}>
       <header className="topbar">
         <NavLink to="/" className="brand">
           <span className="brand-logo">👨‍🍳</span>

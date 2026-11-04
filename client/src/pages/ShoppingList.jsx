@@ -1,14 +1,34 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
-import { api, formatQty, shufersalLink, whatsappLink } from '../api.js';
+import { api, auth, formatQty, shufersalLink, whatsappLink } from '../api.js';
 import { useApp } from '../App.jsx';
 import IngredientImage from '../components/IngredientImage.jsx';
-import { WhatsAppIcon, CopyIcon, PrintIcon } from '../components/Icons.jsx';
+import { WhatsAppIcon, CopyIcon, PrintIcon, GrokIcon } from '../components/Icons.jsx';
+import { getGrokEmail, saveLocalGrokEmail, grokMailto, validEmail } from '../grok.js';
 import { shufersalQuickList, shufersalTarget } from '../shufersalList.js';
 
 export default function ShoppingList() {
-  const { notify, refreshCart } = useApp();
+  const { notify, refreshCart, user, setUser } = useApp();
+  const [grokEmail, setGrokEmail] = useState(() => getGrokEmail(user));
+  const [grokDialog, setGrokDialog] = useState(false);
+  const [grokDraft, setGrokDraft] = useState('');
+  const [grokError, setGrokError] = useState('');
+  useEffect(() => { if (user) setGrokEmail(user.grokEmail || ''); }, [user]);
+
+  const saveGrokEmail = async (e) => {
+    e.preventDefault();
+    const email = grokDraft.trim();
+    if (!validEmail(email)) { setGrokError('כתובת מייל לא תקינה'); return; }
+    try {
+      if (user) setUser(await auth.updateMe({ grokEmail: email }));
+      else saveLocalGrokEmail(email);
+      setGrokEmail(email);
+      setGrokError('');
+    } catch (err) {
+      setGrokError(err.message);
+    }
+  };
   const [items, setItems] = useState(null);
   const [name, setName] = useState('');
   const [qty, setQty] = useState('');
@@ -75,7 +95,37 @@ export default function ShoppingList() {
           <a className="icon-btn wa" href={whatsappLink(waText)} target="_blank" rel="noreferrer" title="שליחה בוואטסאפ" aria-label="שליחה בוואטסאפ"><WhatsAppIcon /></a>
           <button type="button" className="icon-btn print-btn" onClick={() => window.print()} title="הדפסה" aria-label="הדפסה"><PrintIcon /></button>
           <button type="button" className="icon-btn" onClick={copy} title="העתקת הרשימה" aria-label="העתקת הרשימה"><CopyIcon /></button>
+          {grokEmail ? (
+            <a className="icon-btn grok" href={grokMailto(grokEmail, quickList)} title={`שליחה לגרוק (${grokEmail})`} aria-label="שליחה לגרוק במייל"><GrokIcon /></a>
+          ) : (
+            <button type="button" className="icon-btn grok" onClick={() => { setGrokDraft(''); setGrokDialog(true); }} title="שליחה לגרוק" aria-label="שליחה לגרוק במייל"><GrokIcon /></button>
+          )}
         </div>
+      )}
+      {grokDialog && createPortal(
+        <div className="modal-backdrop" onClick={() => setGrokDialog(false)}>
+          <form className="card modal" role="dialog" aria-label="שליחה לגרוק" onClick={(e) => e.stopPropagation()} onSubmit={saveGrokEmail}>
+            <h2>שליחה לגרוק</h2>
+            {grokEmail ? (
+              <>
+                <p>המייל נשמר. לחיצה על הכפתור פותחת את אפליקציית המייל עם הרשימה – נשאר רק ללחוץ "שלח".</p>
+                <a className="btn btn-primary" href={grokMailto(grokEmail, quickList)} onClick={() => setGrokDialog(false)}>📧 פתיחת המייל עם הרשימה</a>
+              </>
+            ) : (
+              <>
+                <label htmlFor="grok-email">לאיזה מייל לשלוח את רשימת הקניות?</label>
+                <input id="grok-email" type="email" dir="ltr" autoFocus value={grokDraft} onChange={(e) => setGrokDraft(e.target.value)} placeholder="name@example.com" />
+                <small className="muted">נשמר בהגדרות (מייל לגרוק). אפשר לשנות אותו שם בכל זמן.</small>
+                {grokError && <div className="alert alert-error">{grokError}</div>}
+                <button className="btn btn-primary">שמירה</button>
+              </>
+            )}
+            <div className="row modal-actions">
+              <button type="button" className="btn" onClick={() => setGrokDialog(false)}>סגירה</button>
+            </div>
+          </form>
+        </div>,
+        document.body,
       )}
       {quickList && (
         <div className="shufersal-row">

@@ -236,6 +236,8 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .icon-btn.danger:hover { border-color: var(--danger); }
 .demo .icon-btn.print-btn { display: none; }
 .shop-actions { margin: -6px 0 14px; }
+.icon-btn.grok { background: #111; border-color: #111; color: #fff; }
+.icon-btn.grok:hover { background: #333; }
 .shufersal-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 16px; }
 .shufersal-row .shufersal-btn { flex: 1; width: auto; }
 .info-btn {

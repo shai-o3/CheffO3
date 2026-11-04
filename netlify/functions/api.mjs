@@ -110,7 +110,7 @@ async function sessionSecret(s) {
 const userKey = (email) => `user/${encodeURIComponent(email)}`;
 // Profile picture: an uploaded photo wins over the Google photo.
 const publicUser = (u) => ({
-  id: u.id, email: u.email, name: u.name, phone: u.phone || '',
+  id: u.id, email: u.email, name: u.name, phone: u.phone || '', grokEmail: u.grokEmail || '',
   picture: u.uploadedPicture || u.googlePicture || u.picture || '',
   hasUploadedPicture: !!u.uploadedPicture,
   googleLinked: !!u.googleSub,
@@ -268,6 +268,11 @@ async function authRoutes(req, url, s, user) {
       const body = await req.json().catch(() => ({}));
       const next = { ...user };
       if (typeof body.name === 'string' && body.name.trim()) next.name = body.name.trim().slice(0, 60);
+      if (typeof body.grokEmail === 'string') {
+        const g = normalizeEmail(body.grokEmail);
+        if (g && !validEmail(g)) return json({ error: 'כתובת המייל לגרוק לא תקינה' }, { status: 400 });
+        next.grokEmail = g;
+      }
       if (typeof body.phone === 'string') {
         const phone = body.phone.trim() ? normalizePhone(body.phone) : '';
         if (phone && !/^\d{9,15}$/.test(phone)) return json({ error: 'מספר טלפון לא תקין' }, { status: 400 });

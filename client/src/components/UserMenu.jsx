@@ -60,6 +60,7 @@ export default function UserMenu({ user, onUser, notify, googleClientId }) {
 function Settings({ user, onUser, notify, googleClientId, onClose }) {
   const [name, setName] = useState(user.name || '');
   const [phone, setPhone] = useState(user.phone || '');
+  const [grokEmail, setGrokEmail] = useState(user.grokEmail || '');
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
   const [error, setError] = useState('');
@@ -81,7 +82,7 @@ function Settings({ user, onUser, notify, googleClientId, onClose }) {
     setBusy(true);
     setError('');
     try {
-      const updated = await auth.updateMe({ name, phone });
+      const updated = await auth.updateMe({ name, phone, grokEmail });
       if (next) await auth.changePassword(current, next);
       onUser(updated);
       notify('✅ ההגדרות נשמרו');
@@ -122,6 +123,9 @@ function Settings({ user, onUser, notify, googleClientId, onClose }) {
         {user.googleLinked && <small className="muted">✓ מחובר לחשבון Google</small>}
         <label htmlFor="set-name">שם</label>
         <input id="set-name" value={name} onChange={(e) => setName(e.target.value)} />
+        <label htmlFor="set-grok">מייל לגרוק</label>
+        <input id="set-grok" type="email" dir="ltr" value={grokEmail} onChange={(e) => setGrokEmail(e.target.value)} placeholder="name@example.com" />
+        <small className="muted">לשם תישלח רשימת הקניות בלחיצה על כפתור גרוק ברשימת הקניות.</small>
         <label htmlFor="set-phone">טלפון לוואטסאפ</label>
         <input id="set-phone" type="tel" dir="ltr" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="050-1234567" />
         <small className="muted">מתכונים שתשלחו לבוט הוואטסאפ מהמספר הזה יישמרו בחשבון שלכם.</small>
