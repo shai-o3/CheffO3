@@ -37,13 +37,24 @@ export function PrintIcon({ size = 22 }) {
   );
 }
 
-/** Grok mark: a slash through a ring (drawn simply, monochrome). */
-export function GrokIcon({ size = 22 }) {
+/** Grok app icon: dark rounded square, white face with two dark eyes (drawn from the app icon). */
+export function GrokIcon({ size = 30 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-      <path d="M17.3 7.2A7 7 0 1 0 18.9 15" />
-      <path d="M8.5 15.5 19.5 4.5" />
-      <path d="M12.6 12.2 20 19.6" />
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <defs>
+        <clipPath id="grok-clip"><rect width="100" height="100" rx="23" /></clipPath>
+        <radialGradient id="grok-face" cx="0.35" cy="0.3" r="0.85">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.6" stopColor="#ececec" />
+          <stop offset="1" stopColor="#b9b9b9" />
+        </radialGradient>
+      </defs>
+      <g clipPath="url(#grok-clip)">
+        <rect width="100" height="100" fill="#1d1d1f" />
+        <circle cx="42" cy="90" r="70" fill="url(#grok-face)" />
+        <rect x="40" y="45" width="11" height="23" rx="5.5" fill="#1d1d1f" transform="rotate(-18 45.5 56.5)" />
+        <rect x="58" y="40" width="11" height="23" rx="5.5" fill="#1d1d1f" transform="rotate(-18 63.5 51.5)" />
+      </g>
     </svg>
   );
 }
