@@ -237,7 +237,6 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .demo .icon-btn.print-btn { display: none; }
 .shop-actions { margin: -6px 0 14px; }
 .icon-btn.grok { background: var(--surface); }
-.icon-btn.grok svg { border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); }
 .shufersal-row { display: flex; gap: 8px; align-items: stretch; margin-bottom: 16px; }
 .shufersal-row .shufersal-btn { flex: 1; width: auto; }
 .info-btn {
