@@ -350,7 +350,11 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .missing-item { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; background: var(--surface-2); border-radius: 99px; padding: 2px 8px 2px 4px; }
 .quick-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
 .quick-add small { color: var(--muted); }
-.ai-ideas { margin-top: 28px; }
+.ai-ideas { margin-top: 18px; display: grid; gap: 10px; }
+.ai-ideas h2, .ai-ideas p { margin: 0; }
+.ai-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ai-buttons .btn { padding: 14px 8px; white-space: normal; }
+.idea-source { font-size: 0.88rem; margin: 0 0 6px; }
 .ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 16px; }
 .idea { box-shadow: none; background: var(--surface-2); }
 .idea details { margin: 10px 0; font-size: 0.92rem; }

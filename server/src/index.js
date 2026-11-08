@@ -116,7 +116,7 @@ export function createApp() {
     const pantry = req.body.pantry?.length ? req.body.pantry : shopping.listPantry();
     if (!pantry.length) throw Object.assign(new Error('הוסיפו מצרכים שיש לכם בבית'), { status: 400 });
     const existingTitles = recipes.listRecipes().map((r) => r.title);
-    res.json(await suggestRecipes({ pantry, preferences: req.body.preferences, count: Math.min(Number(req.body.count) || 3, 5), existingTitles }));
+    res.json(await suggestRecipes({ pantry, preferences: req.body.preferences, count: Math.min(Number(req.body.count) || 3, 5), existingTitles, mode: req.body.mode === 'web' ? 'web' : 'invent', allowStaples: req.body.allowStaples !== false }));
   }));
   api.post('/recipes/:id/adapt', wrap(async (req, res) => {
     const r = recipes.getRecipe(Number(req.params.id));

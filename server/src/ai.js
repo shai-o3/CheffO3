@@ -75,19 +75,32 @@ function check(response) {
   }
 }
 
-async function parseWithSchema({ system, content, schema, maxTokens = 16000, effort = process.env.AI_EFFORT || 'medium' }) {
-  const response = await getClient().beta.messages.parse({
-    model: MODEL,
-    max_tokens: maxTokens,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort, format: betaZodOutputFormat(schema) },
-    system,
-    messages: [{ role: 'user', content }],
-  });
+async function parseWithSchema({ system, content, schema, maxTokens = 16000, effort = process.env.AI_EFFORT || 'medium', tools }) {
+  const { type, schema: jsonSchema } = betaZodOutputFormat(schema);
+  const messages = [{ role: 'user', content }];
+  let response;
+  // Server tools (web search) can pause a long turn; send it back so the server continues.
+  for (let i = 0; i < 4; i++) {
+    response = await getClient().beta.messages.create({
+      model: MODEL,
+      max_tokens: maxTokens,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { effort, format: { type, schema: jsonSchema } },
+      system,
+      messages,
+      ...(tools && { tools }),
+    });
+    if (response.stop_reason !== 'pause_turn') break;
+    messages.push({ role: 'assistant', content: response.content });
+  }
   check(response);
-  if (!response.parsed_output) throw Object.assign(new Error('לא הצלחנו לפענח את תשובת הבינה'), { status: 502 });
-  return response.parsed_output;
+  // The structured answer is the last text block of the final turn.
+  const text = [...response.content].reverse().find((b) => b.type === 'text')?.text || '';
+  let data;
+  try { data = schema.parse(JSON.parse(text)); } catch { data = null; }
+  if (!data) throw Object.assign(new Error('לא הצלחנו לפענח את תשובת הבינה'), { status: 502 });
+  return data;
 }
 
 /** Keep model output inside our fixed vocabularies. */
@@ -135,7 +148,9 @@ export async function extractRecipe({ text = '', images = [] }) {
 const SuggestionsSchema = z.object({
   suggestions: z.array(RecipeSchema.omit({ is_recipe: true }).extend({
     why: z.string().describe('משפט קצר: למה המתכון מתאים למה שיש במקרר'),
-    missing: z.array(z.string()).describe('מצרכים שחסרים למשתמש (אם יש)'),
+    missing: z.array(z.string()).describe('מצרכים שחסרים למשתמש (אם יש). השאף שהרשימה תהיה ריקה'),
+    source_url: z.string().describe('כתובת המתכון המקורי ברשת, אם נמצא בחיפוש; ריק אם המתכון הומצא'),
+    source_name: z.string().describe('שם האתר או הכותב של המתכון המקורי; ריק אם הומצא'),
   })),
 });
 
@@ -161,16 +176,35 @@ export async function splitRecipes(text) {
   return cutByStartLines(text, out.recipes);
 }
 
-/** Generate new recipe ideas from the user's pantry. */
-export async function suggestRecipes({ pantry, preferences = '', count = 3, existingTitles = [] }) {
+/**
+ * Recipes that use only what's in the pantry.
+ * mode 'invent': the model creates recipes; mode 'web': it searches the web for real
+ * recipes (with source links) and rewrites them in our structure.
+ */
+export async function suggestRecipes({ pantry, preferences = '', count = 3, existingTitles = [], mode = 'invent', allowStaples = true }) {
   if (!aiEnabled()) throw Object.assign(new Error('הצעות מתכונים חכמות דורשות הגדרת ANTHROPIC_API_KEY בשרת'), { status: 400 });
-  const text = `מה שיש לי במטבח: ${pantry.join(', ')}.
+  const staples = allowStaples ? 'מותר להוסיף רק מלח, פלפל שחור, שמן ומים. שום מצרך אחר.' : 'אסור להוסיף אף מצרך, גם לא מלח או שמן.';
+  const rules = `המצרכים שיש לי: ${pantry.join(', ')}.
+חובה: כל מתכון משתמש אך ורק במצרכים האלה (לא חייב בכולם). ${staples}
+שדה missing חייב להיות ריק.
 ${preferences ? `העדפות: ${preferences}.` : ''}
-הצע ${count} מתכונים מגוונים ומעשיים שמשתמשים בעיקר במה שיש לי (מותר להניח מלח, פלפל, שמן, מים ותבלינים בסיסיים).
-${existingTitles.length ? `כבר יש לי את המתכונים האלה, אל תחזור עליהם: ${existingTitles.slice(0, 60).join(', ')}.` : ''}
-כל מתכון מלא: מצרכים מפורקים והוראות.`;
-  const out = await parseWithSchema({ system: SYSTEM, content: [{ type: 'text', text }], schema: SuggestionsSchema, maxTokens: 32000 });
-  return out.suggestions.map(normalizeRecipe);
+${existingTitles.length ? `אל תציע מתכונים שכבר יש לי: ${existingTitles.slice(0, 60).join(', ')}.` : ''}
+כל מתכון מלא: מצרכים מפורקים והוראות, בעברית.`;
+  const text = mode === 'web'
+    ? `חפש ברשת ${count} מתכונים אמיתיים ופופולריים שאפשר להכין רק ממה שיש לי. העדף אתרי מתכונים בעברית.
+${rules}
+לכל מתכון מלא source_url ו-source_name של המקור. אם מתכון מהרשת דורש מצרך נוסף, בחר מתכון אחר או השמט את המצרך רק אם הוא לא מהותי וציין זאת בהערות.`
+    : `המצא ${count} מתכונים מגוונים, טעימים ומעשיים.
+${rules}
+source_url ו-source_name ריקים.`;
+  const out = await parseWithSchema({
+    system: SYSTEM,
+    content: [{ type: 'text', text }],
+    schema: SuggestionsSchema,
+    maxTokens: 16000,
+    ...(mode === 'web' && { tools: [{ type: 'web_search_20260209', name: 'web_search', max_uses: 3 }] }),
+  });
+  return out.suggestions.map((s) => ({ ...normalizeRecipe(s), source: s.source_url || '', source_name: s.source_name || '' }));
 }
 
 /** Adapt an existing recipe according to an instruction (vegan, gluten free, double, ...). */

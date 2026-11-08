@@ -5,6 +5,8 @@ import { useApp } from '../App.jsx';
 import RecipeCard from '../components/RecipeCard.jsx';
 import IngredientImage from '../components/IngredientImage.jsx';
 
+const hostOf = (u) => { try { return new URL(u).hostname; } catch { return u; } };
+
 const QUICK = ['ביצים', 'עגבניות', 'בצל', 'שום', 'עוף', 'אורז', 'פסטה', 'תפוחי אדמה', 'גבינה צהובה', 'חלב', 'קמח', 'לימון', 'מלפפון', 'פלפל אדום', 'טחינה'];
 
 export default function WhatCanICook() {
@@ -16,7 +18,7 @@ export default function WhatCanICook() {
   const [matches, setMatches] = useState(null);
   const [prefs, setPrefs] = useState('');
   const [ideas, setIdeas] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState('');
 
   useEffect(() => { api.pantry().then(setPantry); }, []);
   useEffect(() => {
@@ -38,20 +40,20 @@ export default function WhatCanICook() {
     refreshCart();
   };
 
-  const getIdeas = async () => {
-    setBusy(true);
+  const getIdeas = async (mode) => {
+    setBusy(mode);
     setIdeas(null);
     try {
-      setIdeas(await api.suggest({ pantry, preferences: prefs, count: 3 }));
+      setIdeas(await api.suggest({ pantry, preferences: prefs, count: mode === 'web' ? 2 : 3, mode, allowStaples: ignoreStaples }));
     } catch (e) {
       notify(e.message, 'error');
     } finally {
-      setBusy(false);
+      setBusy('');
     }
   };
 
   const saveIdea = async (idea) => {
-    const saved = await api.createRecipe({ ...idea, source: 'הצעת השף (AI)' });
+    const saved = await api.createRecipe({ ...idea, source: idea.source || 'הצעת השף (AI)' });
     refreshMeta();
     notify('✅ המתכון נשמר לספר המתכונים');
     nav(`/recipes/${saved.id}`);
@@ -87,13 +89,60 @@ export default function WhatCanICook() {
         </label>
       </section>
 
+      <section className="card ai-ideas">
+        <h2>✨ מתכונים רק ממה שיש לך</h2>
+        <p className="muted">מתכונים שמשתמשים אך ורק במצרכים שסימנת{ignoreStaples ? ' (ובמלח, פלפל, שמן ומים)' : ''}.</p>
+        {meta?.aiEnabled ? (
+          <>
+            <input value={prefs} onChange={(e) => setPrefs(e.target.value)} placeholder="העדפות (לא חובה): לילדים, עד 30 דקות, חריף..." />
+            <div className="ai-buttons">
+              <button type="button" className="btn btn-primary" disabled={!pantry.length || !!busy} onClick={() => getIdeas('invent')}>
+                {busy === 'invent' ? 'השף ממציא...' : '👩‍🍳 השף ימציא מתכון'}
+              </button>
+              <button type="button" className="btn" disabled={!pantry.length || !!busy} onClick={() => getIdeas('web')}>
+                {busy === 'web' ? 'מחפש ברשת...' : '🌐 חיפוש מתכון ברשת'}
+              </button>
+            </div>
+            {!pantry.length && <small className="muted">הוסיפו קודם מצרכים למעלה.</small>}
+            {busy && <div className="loading">{busy === 'web' ? 'מחפש ברשת מתכונים שמתאימים בדיוק למה שיש לכם (עד דקה)...' : 'השף מרכיב מתכונים ממה שיש לכם...'}</div>}
+            {ideas && (
+              <div className="ideas">
+                {ideas.map((idea, i) => (
+                  <article key={i} className="idea card">
+                    <h3>{idea.emoji} {idea.title}</h3>
+                    <p>{idea.description}</p>
+                    <p className="muted">💡 {idea.why}</p>
+                    {idea.source && (
+                      <p className="idea-source">🌐 מקור: <a href={idea.source} target="_blank" rel="noreferrer">{idea.source_name || hostOf(idea.source)}</a></p>
+                    )}
+                    <div className="meta-row">
+                      {(idea.prep_minutes || idea.cook_minutes) ? <span>⏱️ {(idea.prep_minutes || 0) + (idea.cook_minutes || 0)} דק'</span> : null}
+                      <span>🧺 {idea.ingredients.length} מצרכים</span>
+                    </div>
+                    {idea.missing?.length > 0 && <p className="missing">חסר: {idea.missing.join(', ')}</p>}
+                    <details>
+                      <summary>הצגת המתכון</summary>
+                      <ul>{idea.ingredients.map((g, j) => <li key={j}>{[g.quantity, g.unit, g.name].filter((x) => x != null && x !== '').join(' ')}</li>)}</ul>
+                      <ol>{idea.steps.map((st, j) => <li key={j}>{st.text}</li>)}</ol>
+                    </details>
+                    <button type="button" className="btn btn-primary btn-sm" onClick={() => saveIdea(idea)}>💾 שמירה לספר המתכונים</button>
+                  </article>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="alert">⚠️ הצעות חכמות דורשות הגדרת ANTHROPIC_API_KEY בשרת.</div>
+        )}
+      </section>
+
       <h2 className="section-title">📖 מתכונים מהספר שלי</h2>
       {!pantry.length ? (
         <div className="empty small">הוסיפו מצרכים כדי לראות מה אפשר להכין.</div>
       ) : matches === null ? (
         <div className="loading">מחפש...</div>
       ) : matches.length === 0 ? (
-        <div className="empty small">אף מתכון שמור לא משתמש במצרכים האלה – נסו את הצעות השף למטה 👇</div>
+        <div className="empty small">אף מתכון שמור לא משתמש במצרכים האלה.</div>
       ) : (
         <div className="grid">
           {matches.map((m) => (
@@ -125,45 +174,6 @@ export default function WhatCanICook() {
         </div>
       )}
 
-      <section className="card ai-ideas">
-        <h2>✨ הצעות השף – מתכונים חדשים ממה שיש</h2>
-        {meta?.aiEnabled ? (
-          <>
-            <div className="row">
-              <input value={prefs} onChange={(e) => setPrefs(e.target.value)} placeholder="העדפות (לא חובה): צמחוני, לילדים, עד 30 דקות..." />
-              <button type="button" className="btn btn-primary" disabled={!pantry.length || busy} onClick={getIdeas}>
-                {busy ? 'חושב...' : '✨ תן לי רעיונות'}
-              </button>
-            </div>
-            {busy && <div className="loading">השף מרכיב מתכונים ממה שיש לכם...</div>}
-            {ideas && (
-              <div className="ideas">
-                {ideas.map((idea, i) => (
-                  <article key={i} className="idea card">
-                    <h3>{idea.emoji} {idea.title}</h3>
-                    <p>{idea.description}</p>
-                    <p className="muted">💡 {idea.why}</p>
-                    <div className="meta-row">
-                      {(idea.prep_minutes || idea.cook_minutes) && <span>⏱️ {(idea.prep_minutes || 0) + (idea.cook_minutes || 0)} דק'</span>}
-                      <span>🧺 {idea.ingredients.length} מצרכים</span>
-                      <span>📊 {idea.difficulty}</span>
-                    </div>
-                    {idea.missing?.length > 0 && <p className="missing">חסר: {idea.missing.join(', ')}</p>}
-                    <details>
-                      <summary>הצגת המתכון</summary>
-                      <ul>{idea.ingredients.map((g, j) => <li key={j}>{[g.quantity, g.unit, g.name].filter((x) => x != null && x !== '').join(' ')}</li>)}</ul>
-                      <ol>{idea.steps.map((s, j) => <li key={j}>{s.text}</li>)}</ol>
-                    </details>
-                    <button type="button" className="btn btn-primary btn-sm" onClick={() => saveIdea(idea)}>💾 שמירה לספר המתכונים</button>
-                  </article>
-                ))}
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="alert">⚠️ הצעות חכמות דורשות הגדרת ANTHROPIC_API_KEY בשרת.</div>
-        )}
-      </section>
     </>
   );
 }

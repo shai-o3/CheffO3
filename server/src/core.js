@@ -241,7 +241,8 @@ export async function handle(ctx, method, path, params, body) {
     if (!pantry.length) throw httpError(400, 'הוסיפו מצרכים שיש לכם בבית');
     return ctx.ai.suggestRecipes({
       pantry, preferences: body.preferences, count: Math.min(Number(body.count) || 3, 5),
-      existingTitles: state.recipes.map((r) => r.title),
+      existingTitles: state.recipes.map((r) => r.title), mode: body.mode === 'web' ? 'web' : 'invent',
+      allowStaples: body.allowStaples !== false,
     });
   }
   if (route('POST', /^\/recipes\/(\d+)\/adapt$/)) {
