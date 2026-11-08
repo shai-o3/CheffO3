@@ -10,6 +10,7 @@ import ShoppingList from './pages/ShoppingList.jsx';
 import About from './pages/About.jsx';
 import Login from './components/Login.jsx';
 import UserMenu from './components/UserMenu.jsx';
+import ConversionTable from './components/ConversionTable.jsx';
 
 const AppCtx = createContext(null);
 export const useApp = () => useContext(AppCtx);
@@ -31,6 +32,7 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   const [sessionError, setSessionError] = useState('');
+  const [showConversions, setShowConversions] = useState(false);
 
   const loadSession = useCallback(() => {
     setSessionError('');
@@ -92,13 +94,13 @@ export default function App() {
   return (
     <AppCtx.Provider value={{ meta, refreshMeta, notify, refreshCart, user, setUser }}>
       <header className="topbar">
-        <NavLink to="/" className="brand">
-          <span className="brand-logo">👨‍🍳</span>
-          <span>
+        <div className="brand">
+          <button type="button" className="brand-logo" onClick={() => setShowConversions(true)} title="טבלת המרות" aria-label="פתיחת טבלת המרות">👨‍🍳</button>
+          <NavLink to="/" className="brand-name">
             <strong>CheffO3</strong>
             <small>ספר המתכונים החכם</small>
-          </span>
-        </NavLink>
+          </NavLink>
+        </div>
         <nav className="nav">
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className="nav-link">
@@ -127,6 +129,7 @@ export default function App() {
           <Route path="*" element={<div className="empty">העמוד לא נמצא 🤷</div>} />
         </Routes>
       </main>
+      {showConversions && <ConversionTable onClose={() => setShowConversions(false)} />}
       {toast && <div key={toast.id} className={`toast toast-${toast.kind}`}>{toast.msg}</div>}
     </AppCtx.Provider>
   );

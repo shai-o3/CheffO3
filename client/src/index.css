@@ -501,6 +501,25 @@ input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--primary)
 .login-card label { text-align: right; font-weight: 600; }
 .login-logo { margin: 0 auto; width: 64px; height: 64px; font-size: 38px; }
 
+/* header brand: the logo opens the conversion table */
+button.brand-logo { border: 0; cursor: pointer; padding: 0; font-size: 28px; }
+button.brand-logo:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+.brand-name { color: var(--text); }
+
+/* conversion table */
+.conv-modal { width: min(520px, 100%); gap: 4px; }
+.conv-head { display: flex; justify-content: space-between; align-items: center; }
+.conv-head h2 { margin: 0; }
+.conv-close { border: 0; background: none; font-size: 1.3rem; cursor: pointer; color: var(--text); padding: 4px 8px; border-radius: 8px; }
+.conv-close:hover { background: var(--surface-2); }
+.conv-note { margin: 4px 0 6px; }
+.conv-modal h3 { margin: 12px 0 4px; font-size: 1rem; color: var(--primary); }
+.conv-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.conv-table th { text-align: right; font-size: 0.8rem; color: var(--muted); font-weight: 700; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+.conv-table td { padding: 7px 6px; border-bottom: 1px dashed var(--line); }
+.conv-table td.eq { color: var(--muted); width: 1.5em; text-align: center; }
+.conv-table tr:last-child td { border-bottom: 0; }
+
 /* login extras */
 .login-card { width: min(400px, 100%); text-align: right; }
 .login-card > h1, .login-card > p { text-align: center; margin: 0; }
